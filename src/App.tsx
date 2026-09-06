@@ -39,20 +39,20 @@ function StatusPill({ children, tone = 'neutral' }: { children: React.ReactNode;
 
 function Sidebar({ view, setView, openAbout, signOut }: { view: View; setView: (view: View) => void; openAbout: () => void; signOut: () => void }) {
   const items = [
-    { id: 'overview' as View, label: 'Command center', icon: LayoutDashboard },
-    { id: 'timeline' as View, label: 'Execution trace', icon: Activity, badge: '11' },
-    { id: 'time-machine' as View, label: 'Time Machine', icon: GitCompareArrows },
-    { id: 'evidence' as View, label: 'Evidence packet', icon: FileCheck2 },
+    { id: 'overview' as View, label: 'Close overview', icon: LayoutDashboard },
+    { id: 'timeline' as View, label: 'Review activity', icon: Activity, badge: '11' },
+    { id: 'time-machine' as View, label: 'CFO Time Machine', icon: GitCompareArrows },
+    { id: 'evidence' as View, label: 'Board packet', icon: FileCheck2 },
   ]
   return <aside className="sidebar">
     <Logo />
     <div className="workspace-switch"><div className="workspace-icon">OR</div><div><small>WORKSPACE</small><strong>Orbit Systems</strong></div><ChevronDown size={14} /></div>
     <nav>
-      <span className="nav-label">CONTROL ROOM</span>
+      <span className="nav-label">SEPTEMBER CLOSE</span>
       {items.map(({ id, label, icon: Icon, badge }) => <button key={id} className={view === id ? 'active' : ''} onClick={() => setView(id)}><Icon size={17} /><span>{label}</span>{badge && <em>{badge}</em>}</button>)}
-      <span className="nav-label second">OPERATIONS</span>
-      <button><Database size={17} /><span>Data sources</span><i className="connected-dot" /></button>
-      <button><Settings2 size={17} /><span>Control policies</span></button>
+      <span className="nav-label second">REFERENCE</span>
+      <button><Database size={17} /><span>Demo data</span><i className="connected-dot" /></button>
+      <button><Settings2 size={17} /><span>Review settings</span></button>
     </nav>
     <div className="sidebar-bottom">
       <div className="local-banner"><ShieldCheck size={16} /><div><strong>Local-only mode</strong><span>No credentials · no egress</span></div></div>
@@ -66,11 +66,11 @@ function Sidebar({ view, setView, openAbout, signOut }: { view: View; setView: (
 function Header({ running, run, reset, mobileNav }: { running: boolean; run: () => void; reset: () => void; mobileNav: () => void }) {
   return <header className="topbar">
     <button className="mobile-menu" onClick={mobileNav}><Menu size={20} /></button>
-    <div><div className="eyebrow">SEPTEMBER CLOSE · FY26</div><h1>CFO intelligence console</h1></div>
+    <div><div className="eyebrow">ORBIT SYSTEMS · SEPTEMBER CLOSE</div><h1>Close review</h1></div>
     <div className="top-actions">
       <div className="data-fresh"><span /><div><small>DATA FRESHNESS</small><strong>Live · 2m ago</strong></div></div>
       <button className="icon-btn" title="Reset demo" onClick={reset}><RefreshCcw size={17} /></button>
-      <button className="run-btn" disabled={running} onClick={run}>{running ? <><span className="spinner" />Running evaluation</> : <><Play size={15} fill="currentColor" />Run all goals</>}</button>
+      <button className="run-btn" disabled={running} onClick={run}>{running ? <><span className="spinner" />Checking the close</> : <><Play size={15} fill="currentColor" />Run CFO Time Machine</>}</button>
     </div>
   </header>
 }
@@ -141,25 +141,16 @@ function EscalationCard({ decision, onDecision }: { decision: string | null; onD
 }
 
 function AgentControls({ generated, improved, injected, message, onGenerate, onImprove, onInject }: { generated: boolean; improved: boolean; injected: boolean; message: string; onGenerate: () => void; onImprove: () => void; onInject: () => void }) {
-  return <section className="agent-controls" aria-label="Agent controls"><div className="agent-control-title"><div className="control-orb"><Bot size={16} /></div><div><strong>Agent lab</strong><span>Deterministic controls · local trace</span></div></div><div className="control-actions"><button onClick={onGenerate} className={generated ? 'control-done' : ''}><Zap size={14} />{generated ? 'Agent generated' : 'Generate Agent'}</button><button onClick={onImprove} className={improved ? 'control-done' : ''}><Sparkles size={14} />{improved ? 'Agent improved' : 'Improve Agent'}</button><button onClick={onInject} className={injected ? 'control-alert' : ''}><ShieldAlert size={14} />{injected ? 'Fraud case injected' : 'Inject new fraud case'}</button></div><div className="control-feedback"><span className={injected ? 'feedback-dot alert' : 'feedback-dot'} />{message}</div></section>
+  return <section className="demo-controls" aria-label="Demo controls"><div><strong>Try the demo</strong><span>These controls add entries to the review record.</span></div><div className="control-actions"><button onClick={onGenerate} className={generated ? 'control-done' : ''}><Zap size={14} />{generated ? 'Agent generated' : 'Generate Agent'}</button><button onClick={onImprove} className={improved ? 'control-done' : ''}><Sparkles size={14} />{improved ? 'Agent improved' : 'Improve Agent'}</button><button onClick={onInject} className={injected ? 'control-alert' : ''}><ShieldAlert size={14} />{injected ? 'Fraud case injected' : 'Inject fraud case'}</button></div><p className="control-feedback"><span className={injected ? 'feedback-dot alert' : 'feedback-dot'} />{message}</p></section>
 }
 
-function Overview({ setView, decision, setDecision, completed, agentGenerated, agentImproved, injectedCase, controlMessage, onGenerate, onImprove, onInject }: { setView: (v: View) => void; decision: string | null; setDecision: (v: string) => void; completed: boolean; agentGenerated: boolean; agentImproved: boolean; injectedCase: boolean; controlMessage: string; onGenerate: () => void; onImprove: () => void; onInject: () => void }) {
-  return <div className="view overview-view">
-    <div className="welcome-row"><div><span className="page-label"><CircleDot size={12} /> AGENT RUN LF-260906-04</span><h2>Good morning. Your close is decision-ready.</h2><p>LedgerForge evaluated three finance goals, corrected two policy failures, and isolated one material assumption for review.</p></div><div className="run-status"><span className={completed ? 'pulse' : 'pulse running'} /><div><small>RUN STATUS</small><strong>{completed ? 'Completed with escalation' : 'Executing goals…'}</strong></div></div></div>
-    <AgentControls generated={agentGenerated} improved={agentImproved} injected={injectedCase} message={controlMessage} onGenerate={onGenerate} onImprove={onImprove} onInject={onInject} />
-    <div className="metrics-grid">
-      <MetricCard label="Cash position" value="$598.4k" delta="1.5%" positive detail="vs. latest plan" icon={WalletCards} />
-      <MetricCard label="Runway" value="11.8 mo" delta="2.4 mo" positive detail="after policy rerun" icon={Gauge} />
-      <MetricCard label="Close confidence" value="94%" delta="33 pts" positive detail="from baseline" icon={Target} />
-      <MetricCard label="Review queue" value="3 items" delta="$44.6k" detail="material exposure" icon={ShieldAlert} />
-    </div>
-    <div className="main-grid">
-      <section className="panel runway-panel"><div className="panel-head"><div><span className="section-kicker">13-WEEK LIQUIDITY</span><h2>Cash trajectory</h2></div><div className="chart-total"><small>DECEMBER EXIT</small><strong>$478k</strong></div></div><CashChart /><div className="chart-footer"><div><strong>−$40.1k</strong><span>Average monthly burn</span></div><div><strong>+$9.2k</strong><span>Variance to downside</span></div><div><strong>Dec 18</strong><span>Minimum buffer date</span></div></div></section>
-      <section className="panel goals-panel"><div className="panel-head"><div><span className="section-kicker">GOAL CONTRACTS</span><h2>Autonomous workstreams</h2></div><span className="overall-score">97<span>/100</span></span></div><div className="goals-list">{goals.map(g => <GoalRow goal={g} key={g.id} />)}</div><button className="full-link" onClick={() => setView('timeline')}>Inspect execution trace <ArrowRight size={15} /></button></section>
-    </div>
-    <ImprovementPanel baseline={baselineSnapshot} improved={improvedSnapshot} onTimeMachine={() => setView('time-machine')} />
-    <div className="bottom-grid"><EscalationCard decision={decision} onDecision={(v) => setDecision(v || '')} /><AnomalyTable injectedCase={injectedCase} /></div>
+function Overview({ setView, decision, setDecision, completed, running, run, agentGenerated, agentImproved, injectedCase, controlMessage, onGenerate, onImprove, onInject }: { setView: (v: View) => void; decision: string | null; setDecision: (v: string) => void; completed: boolean; running: boolean; run: () => void; agentGenerated: boolean; agentImproved: boolean; injectedCase: boolean; controlMessage: string; onGenerate: () => void; onImprove: () => void; onInject: () => void }) {
+  return <div className="view story-view">
+    <section className="close-hero"><div className="hero-copy"><div className="hero-status"><span className={completed ? 'pulse' : 'pulse running'} />{completed ? 'September close reviewed' : 'Review in progress'}</div><h2>Month-end close,<br/><em>reviewed in 90 seconds.</em></h2><p>Cash is reconciled, payment risk is contained, and one revenue assumption needs your call before commitments are made.</p><button className="story-cta" disabled={running} onClick={run}>{running ? <><span className="spinner" />Rechecking the close</> : <><Play size={16} fill="currentColor" />Run CFO Time Machine</>}</button></div><div className="hero-summary"><span>SEPTEMBER CASH POSITION</span><strong>$598.4k</strong><p><ArrowUpRight size={14} />$9.2k ahead of downside case</p><div><b>11.8 mo</b><small>operating runway</small></div></div></section>
+    <section className="progress-strip" aria-label="Close review progress"><div className="progress-step done"><span>01</span><strong>Inspect</strong><small>8 bank lines read</small></div><div className="progress-line"/><div className="progress-step done"><span>02</span><strong>Find issues</strong><small>3 payments flagged</small></div><div className="progress-line"/><div className="progress-step done"><span>03</span><strong>Improve</strong><small>matching corrected</small></div><div className="progress-line"/><div className="progress-step current"><span>04</span><strong>Recheck</strong><small>ready for CFO</small></div></section>
+    <section className="outcomes"><div className="outcome-heading"><div><h3>What matters now</h3><p>Three outcomes from the close review. Details remain available when you need them.</p></div><button className="quiet-link" onClick={() => setView('timeline')}>Review activity <ArrowRight size={15}/></button></div><div className="outcome-grid"><article className="outcome-card positive"><div className="outcome-icon"><CheckCircle2 size={19}/></div><span>CASH RECONCILED</span><h4>Every bank line is accounted for.</h4><p>8 of 8 entries matched. No unresolved cash remains.</p><strong>$598.4k <small>close cash</small></strong></article><article className="outcome-card risk"><div className="outcome-icon"><ShieldAlert size={19}/></div><span>PAYMENT RISK FOUND</span><h4>Three payments should be reviewed.</h4><p>Two duplicate Novacore payments and one new vendor transaction need confirmation.</p><strong>$44.6k <small>on hold</small></strong></article><article className="outcome-card neutral"><div className="outcome-icon"><Gauge size={19}/></div><span>RUNWAY PROTECTED</span><h4>Operating runway is 11.8 months.</h4><p>The close remains above the downside case through December.</p><strong>+2.7 mo <small>decision buffer</small></strong></article></div></section>
+    <section className="cfo-decision"><div className="decision-marker"><AlertTriangle size={20}/></div><div><span>CFO DECISION NEEDED</span><h3>Use the downside case for commitments.</h3><p>The unsigned Acme renewal changes runway by 2.7 months. Keep the board case conservative until the renewal is signed.</p></div>{decision ? <div className="decision-recorded"><Check size={14}/>Decision recorded: {decision}</div> : <button className="decision-primary" onClick={() => setDecision('Downside case')}>Adopt downside case <ArrowRight size={15}/></button>}</section>
+    <section className="secondary-views"><div><span>SEE THE EVIDENCE</span><p>Open the detailed review only when you need the supporting record.</p></div><button onClick={() => setView('time-machine')}><GitCompareArrows size={16}/><span><b>CFO Time Machine</b><small>Compare the first and improved review</small></span><ArrowRight size={15}/></button><button onClick={() => setView('evidence')}><FileCheck2 size={16}/><span><b>Board packet</b><small>Download the CFO briefing and evidence</small></span><ArrowRight size={15}/></button><div className="secondary-actions"><AgentControls generated={agentGenerated} improved={agentImproved} injected={injectedCase} message={controlMessage} onGenerate={onGenerate} onImprove={onImprove} onInject={onInject} /></div></section>
   </div>
 }
 
@@ -253,7 +244,7 @@ function App() {
   const [controlMessage, setControlMessage] = useState('Ready · 3 goal contracts available for local execution')
   const [extraTrace, setExtraTrace] = useState<TraceEvent[]>([])
   const setDecision = (v: string) => { setDecisionRaw(v || null); if (v) localStorage.setItem('ledgerforge-decision', v); else localStorage.removeItem('ledgerforge-decision') }
-  const run = () => { setRunning(true); setCompleted(false); setView('overview'); window.setTimeout(() => { setRunning(false); setCompleted(true) }, 1450) }
+  const run = () => { setRunning(true); setCompleted(false); setView('overview'); window.setTimeout(() => { setRunning(false); setCompleted(true); setView('time-machine') }, 1450) }
   const addControlTrace = (event: TraceEvent) => setExtraTrace(prev => [...prev, event])
   const generateAgent = () => { setAgentGenerated(true); setControlMessage('Agent generated · 3 CFO workflows compiled into a goal contract'); addControlTrace({ id: 'T12', time: '09:42:31', phase: 'plan', title: 'Agent generated from goal contract', detail: 'Compiled close, controls, and runway workflows from deterministic local policies.', tool: 'agent.generate_local', status: 'success', durationMs: 12 }) }
   const improveAgent = () => { setAgentImproved(true); setControlMessage('Agent improved · policy v2 verified against the frozen fixture'); addControlTrace({ id: 'T13', time: '09:42:44', phase: 'improve', title: 'Agent improvement applied', detail: 'Promoted alias, settlement-window, and duplicate-cluster signals after evaluator evidence.', tool: 'agent.improve_local', status: 'success', durationMs: 19 }) }
@@ -266,7 +257,7 @@ function App() {
     <div className="mobile-overlay" onClick={() => setMobile(false)} />
     <Sidebar view={view} setView={(v) => { setView(v); setMobile(false); document.title = `${title} — LedgerForge` }} openAbout={() => setAbout(true)} signOut={signOut} />
     <main className="content"><Header running={running} run={run} reset={reset} mobileNav={() => setMobile(true)} />
-      {view === 'overview' && <Overview setView={setView} decision={decision} setDecision={setDecision} completed={completed} agentGenerated={agentGenerated} agentImproved={agentImproved} injectedCase={injectedCase} controlMessage={controlMessage} onGenerate={generateAgent} onImprove={improveAgent} onInject={injectFraud} />}
+      {view === 'overview' && <Overview setView={setView} decision={decision} setDecision={setDecision} completed={completed} running={running} run={run} agentGenerated={agentGenerated} agentImproved={agentImproved} injectedCase={injectedCase} controlMessage={controlMessage} onGenerate={generateAgent} onImprove={improveAgent} onInject={injectFraud} />}
       {view === 'timeline' && <TimelineView extraTrace={extraTrace} />}
       {view === 'time-machine' && <TimeMachineView />}
       {view === 'evidence' && <EvidenceView decision={decision} />}

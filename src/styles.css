@@ -125,3 +125,29 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgba(38,112,78,.2
 .auth-story-step:focus-visible { outline:2px solid #78d09a; outline-offset:5px; }
 @media (prefers-reduced-motion: reduce) { .auth-progress span { transition:none; } }
 @media (max-width:800px) { .auth-progress { margin-left:8px; } .auth-progress span { width:16px; } .auth-progress span.filled { width:22px; } }
+.auth-flow-rail { display:grid; grid-template-columns:1fr 28px 1fr 28px 1fr; align-items:center; max-width:620px; margin:26px 0 4px; padding:13px 15px; border:1px solid rgba(145,201,161,.2); border-radius:11px; background:linear-gradient(110deg,rgba(54,110,74,.23),rgba(255,255,255,.035)); box-shadow:inset 0 1px rgba(255,255,255,.08),0 14px 28px rgba(0,0,0,.11); }
+.auth-flow-rail > div { display:grid; grid-template-columns:24px 1fr; column-gap:8px; align-items:center; }
+.auth-flow-rail > div > span { grid-row:span 2; display:grid; place-items:center; width:22px; height:22px; border:1px solid rgba(151,215,169,.42); border-radius:50%; color:#9de0b3; font-size:9px; font-weight:800; }
+.auth-flow-rail b { color:#edf7f0; font-size:12px; }
+.auth-flow-rail small { color:#9fb8a8; font-size:10px; }
+.auth-flow-rail i { height:1px; background:linear-gradient(90deg,rgba(127,207,149,.12),rgba(127,207,149,.7),rgba(127,207,149,.12)); }
+@media (hover:hover) and (pointer:fine) { .auth-flow-rail > div { transition:transform .2s ease,filter .2s ease; } .auth-flow-rail > div:hover { transform:translateY(-3px); filter:drop-shadow(0 6px 8px rgba(86,184,114,.2)); } }
+.scene-grid { animation:grid-breathe 8s ease-in-out infinite; }
+.scene-ring { animation:ring-drift 12s ease-in-out infinite; }
+.ring-two { animation-delay:-5s; }
+.scene-ledger { animation:ledger-float 6s ease-in-out infinite; }
+.ledger-two { animation-delay:-2s; }
+.ledger-three { animation-delay:-4s; }
+.scene-agent { animation:agent-pulse 3.6s ease-in-out infinite; }
+.agent-two { animation-delay:-1.2s; }.agent-three { animation-delay:-2.4s; }
+.scene-connector { animation:path-pulse 3.5s ease-in-out infinite; }
+.connector-two { animation-delay:-1.7s; }
+.scene-score { animation:score-glow 4.5s ease-in-out infinite; }
+@keyframes grid-breathe { 50% { opacity:.66; transform:rotateX(63deg) rotateZ(-26deg) translateY(27px) scale(1.03); } }
+@keyframes ring-drift { 50% { transform:translate(-50%,-50%) rotateX(66deg) rotateZ(7deg) scale(1.035); opacity:.8; } }
+@keyframes ledger-float { 50% { margin-top:-5px; filter:brightness(1.08); } }
+@keyframes agent-pulse { 50% { box-shadow:0 0 16px rgba(90,196,119,.35); transform:scale(1.07); } }
+@keyframes path-pulse { 50% { opacity:.92; } }
+@keyframes score-glow { 50% { filter:drop-shadow(0 0 9px rgba(116,210,146,.24)); } }
+@media (prefers-reduced-motion: reduce) { .scene-grid,.scene-ring,.scene-ledger,.scene-agent,.scene-connector,.scene-score { animation:none!important; } }
+@media (max-width:800px) { .auth-flow-rail { grid-template-columns:1fr; gap:9px; margin-top:22px; } .auth-flow-rail i { width:1px; height:10px; margin-left:10px; } .auth-flow-rail > div { grid-template-columns:24px 1fr; } }

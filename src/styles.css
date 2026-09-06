@@ -151,3 +151,34 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgba(38,112,78,.2
 @keyframes score-glow { 50% { filter:drop-shadow(0 0 9px rgba(116,210,146,.24)); } }
 @media (prefers-reduced-motion: reduce) { .scene-grid,.scene-ring,.scene-ledger,.scene-agent,.scene-connector,.scene-score { animation:none!important; } }
 @media (max-width:800px) { .auth-flow-rail { grid-template-columns:1fr; gap:9px; margin-top:22px; } .auth-flow-rail i { width:1px; height:10px; margin-left:10px; } .auth-flow-rail > div { grid-template-columns:24px 1fr; } }
+
+/* Final onboarding art direction: one matte three-plane ledger stack. */
+.auth-scene { height: 292px; max-width: 520px; perspective: 1000px; contain: layout paint; }
+.auth-scene::before { content:""; position:absolute; left:12%; right:8%; bottom:18px; height:48px; background:radial-gradient(ellipse,rgba(0,0,0,.28),transparent 68%); filter:blur(10px); opacity:.7; pointer-events:none; }
+.scene-ground { position:absolute; left:8%; right:8%; bottom:28px; height:145px; border:1px solid rgba(166,204,176,.18); border-radius:12px; background:linear-gradient(135deg,rgba(222,235,225,.08),rgba(21,49,35,.35)); transform:rotateX(58deg) rotateZ(-8deg); transform-origin:center; box-shadow:inset 0 1px rgba(255,255,255,.07); }
+.scene-ledger { width:190px; height:94px; padding:15px 18px; border:1px solid rgba(210,229,214,.32); border-radius:9px; display:block; background:#f4f7f2; color:#24382b; box-shadow:8px 13px 18px rgba(0,0,0,.17),inset 0 1px rgba(255,255,255,.8); transform:rotateX(48deg) rotateZ(-8deg); animation:none!important; transition:transform .55s cubic-bezier(.2,.75,.3,1),box-shadow .3s ease,border-color .3s ease,background .3s ease; }
+.scene-ledger span,.scene-ledger b,.scene-ledger small { display:block; text-align:left; }
+.scene-ledger span { color:#597362; font-size:10px; font-weight:800; letter-spacing:1px; text-transform:uppercase; }
+.scene-ledger b { margin-top:8px; color:#1d3025; font-size:19px; letter-spacing:-.5px; }
+.scene-ledger small { margin-top:3px; color:#73857a; font-size:10px; }
+.ledger-one { left:7%; top:30%; transform:rotateX(48deg) rotateZ(-8deg) translateZ(14px); }
+.ledger-two { left:27%; top:38%; background:#e8f0e8; transform:rotateX(48deg) rotateZ(-8deg) translateZ(28px); }
+.ledger-three { left:47%; top:46%; background:#dfece2; border-color:#7fb593; transform:rotateX(48deg) rotateZ(-8deg) translateZ(42px); }
+.scene-link { position:absolute; width:72px; height:2px; left:38%; top:49%; background:#7fb593; transform-origin:left center; box-shadow:0 0 0 1px rgba(127,181,147,.08); opacity:.65; transition:width .5s ease,opacity .4s ease; }
+.link-bank { transform:rotate(-8deg); }.link-ledger { left:58%; top:56%; transform:rotate(-8deg); }
+.scene-agent { width:30px; height:30px; z-index:3; border:1px solid #8ab99a; border-radius:50%; display:grid; place-items:center; background:#294b36; color:#d3ecda; box-shadow:0 5px 11px rgba(0,0,0,.17); animation:none!important; }
+.agent-one { left:23%; top:17%; }.agent-two { left:66%; top:22%; }.agent-three { left:78%; top:69%; }
+.scene-issue { z-index:4; right:3%; bottom:18%; background:#fff5e9; border:1px solid #e0bb87; color:#945b24; box-shadow:0 5px 12px rgba(0,0,0,.12); }
+.scene-score { z-index:4; left:4%; bottom:8%; width:68px; height:68px; background:#f5faf6; border:1px solid #8fbd9d; color:#236244; box-shadow:0 7px 14px rgba(0,0,0,.14); animation:none!important; transition:transform .55s ease,box-shadow .3s ease; }
+.scene-score span { color:#527461; }.scene-score strong { color:#205d3e; }
+.scene-hotspot { position:absolute; z-index:8; min-height:28px; padding:5px 8px; display:flex; align-items:center; gap:6px; border:1px solid rgba(173,211,183,.35); border-radius:6px; background:rgba(20,51,35,.88); color:#e1f0e4; font-size:10px; cursor:pointer; transition:transform .18s ease,background .18s ease,box-shadow .18s ease; }
+.scene-hotspot span { color:#9dd2ab; font-size:9px; font-weight:800; }.hotspot-bank { left:1%; bottom:2%; }.hotspot-risk { right:2%; top:7%; }.hotspot-brief { right:17%; bottom:3%; }
+.scene-hotspot:hover,.scene-hotspot:focus-visible { transform:translateY(-2px); background:#2b6245; box-shadow:0 7px 13px rgba(0,0,0,.2); }.scene-hotspot:focus-visible { outline:2px solid #9be0ad; outline-offset:3px; }
+.scene-story-label { top:2px; right:4px; color:#789582; }
+.scene-active-2 .ledger-one { transform:rotateX(48deg) rotateZ(-8deg) translateZ(23px) translateY(-4px); }.scene-active-2 .ledger-two { transform:rotateX(48deg) rotateZ(-8deg) translateZ(38px) translateY(-6px); }
+.scene-active-3 .ledger-one,.scene-active-3 .ledger-two { border-color:#a6cdb0; }.scene-active-3 .scene-agent { box-shadow:0 0 0 4px rgba(127,181,147,.12),0 7px 14px rgba(0,0,0,.18); }
+.scene-active-4 .scene-issue { transform:translateZ(18px) scale(1.06); }.scene-active-4 .link-bank,.scene-active-4 .link-ledger { opacity:1; width:84px; }
+.scene-active-5 .scene-issue { background:#eef8f0; border-color:#82b893; color:#296b46; }.scene-active-6 .ledger-three { transform:rotateX(48deg) rotateZ(-8deg) translateZ(52px) translateY(-8px); box-shadow:8px 17px 22px rgba(0,0,0,.2),inset 0 1px rgba(255,255,255,.8); }.scene-active-6 .scene-score { transform:translateZ(22px) scale(1.08); box-shadow:0 10px 20px rgba(37,105,63,.2); }
+@media (hover:hover) and (pointer:fine) { .scene-ledger:hover { transform:rotateX(48deg) rotateZ(-8deg) translateZ(35px) translateY(-3px); border-color:#70a883; box-shadow:10px 18px 24px rgba(0,0,0,.2),inset 0 1px rgba(255,255,255,.8); } }
+@media (prefers-reduced-motion:reduce) { .scene-ledger,.scene-link,.scene-score,.scene-hotspot { transition:none!important; } }
+@media (max-width:760px) { .auth-scene { height:145px; transform:scale(.76); transform-origin:top center; margin-bottom:-18px; } .scene-ledger { width:145px; height:70px; padding:9px 12px; }.scene-ledger b{font-size:14px;margin-top:4px}.scene-ledger small{font-size:9px}.ledger-one{left:5%;top:22%}.ledger-two{left:26%;top:30%}.ledger-three{left:47%;top:38%}.scene-ground{height:108px;bottom:17px}.scene-hotspot{font-size:9px;min-height:24px}.hotspot-risk{right:0;top:1%}.hotspot-bank{left:0;bottom:0}.hotspot-brief{right:12%;bottom:0}.scene-agent{width:24px;height:24px}.agent-one{left:20%;top:8%}.agent-two{left:66%;top:12%}.agent-three{left:78%;top:54%}.scene-score{width:52px;height:52px;left:3%;bottom:2%}.scene-score strong{font-size:15px}.scene-issue{right:1%;bottom:13%;font-size:8px} }

@@ -138,9 +138,14 @@ function EscalationCard({ decision, onDecision }: { decision: string | null; onD
   </section>
 }
 
-function Overview({ setView, decision, setDecision, completed }: { setView: (v: View) => void; decision: string | null; setDecision: (v: string) => void; completed: boolean }) {
+function AgentControls({ generated, improved, injected, message, onGenerate, onImprove, onInject }: { generated: boolean; improved: boolean; injected: boolean; message: string; onGenerate: () => void; onImprove: () => void; onInject: () => void }) {
+  return <section className="agent-controls" aria-label="Agent controls"><div className="agent-control-title"><div className="control-orb"><Bot size={16} /></div><div><strong>Agent lab</strong><span>Deterministic controls · local trace</span></div></div><div className="control-actions"><button onClick={onGenerate} className={generated ? 'control-done' : ''}><Zap size={14} />{generated ? 'Agent generated' : 'Generate Agent'}</button><button onClick={onImprove} className={improved ? 'control-done' : ''}><Sparkles size={14} />{improved ? 'Agent improved' : 'Improve Agent'}</button><button onClick={onInject} className={injected ? 'control-alert' : ''}><ShieldAlert size={14} />{injected ? 'Fraud case injected' : 'Inject new fraud case'}</button></div><div className="control-feedback"><span className={injected ? 'feedback-dot alert' : 'feedback-dot'} />{message}</div></section>
+}
+
+function Overview({ setView, decision, setDecision, completed, agentGenerated, agentImproved, injectedCase, controlMessage, onGenerate, onImprove, onInject }: { setView: (v: View) => void; decision: string | null; setDecision: (v: string) => void; completed: boolean; agentGenerated: boolean; agentImproved: boolean; injectedCase: boolean; controlMessage: string; onGenerate: () => void; onImprove: () => void; onInject: () => void }) {
   return <div className="view overview-view">
     <div className="welcome-row"><div><span className="page-label"><CircleDot size={12} /> AGENT RUN LF-260906-04</span><h2>Good morning. Your close is decision-ready.</h2><p>LedgerForge evaluated three finance goals, corrected two policy failures, and isolated one material assumption for review.</p></div><div className="run-status"><span className={completed ? 'pulse' : 'pulse running'} /><div><small>RUN STATUS</small><strong>{completed ? 'Completed with escalation' : 'Executing goals…'}</strong></div></div></div>
+    <AgentControls generated={agentGenerated} improved={agentImproved} injected={injectedCase} message={controlMessage} onGenerate={onGenerate} onImprove={onImprove} onInject={onInject} />
     <div className="metrics-grid">
       <MetricCard label="Cash position" value="$598.4k" delta="1.5%" positive detail="vs. latest plan" icon={WalletCards} />
       <MetricCard label="Runway" value="11.8 mo" delta="2.4 mo" positive detail="after policy rerun" icon={Gauge} />
@@ -152,22 +157,23 @@ function Overview({ setView, decision, setDecision, completed }: { setView: (v: 
       <section className="panel goals-panel"><div className="panel-head"><div><span className="section-kicker">GOAL CONTRACTS</span><h2>Autonomous workstreams</h2></div><span className="overall-score">97<span>/100</span></span></div><div className="goals-list">{goals.map(g => <GoalRow goal={g} key={g.id} />)}</div><button className="full-link" onClick={() => setView('timeline')}>Inspect execution trace <ArrowRight size={15} /></button></section>
     </div>
     <ImprovementPanel baseline={baselineSnapshot} improved={improvedSnapshot} onTimeMachine={() => setView('time-machine')} />
-    <div className="bottom-grid"><EscalationCard decision={decision} onDecision={(v) => setDecision(v || '')} /><AnomalyTable /></div>
+    <div className="bottom-grid"><EscalationCard decision={decision} onDecision={(v) => setDecision(v || '')} /><AnomalyTable injectedCase={injectedCase} /></div>
   </div>
 }
 
-function AnomalyTable() {
+function AnomalyTable({ injectedCase = false }: { injectedCase?: boolean }) {
   const results = detectFraud(payments, 'improved').filter(r => r.flagged)
-  return <section className="panel anomaly-card"><div className="panel-head"><div><span className="section-kicker">CONTROL EXCEPTIONS</span><h2>Payments to review</h2></div><StatusPill tone="red">3 flagged</StatusPill></div>
-    <div className="table-wrap"><table><thead><tr><th>Payment</th><th>Vendor</th><th>Value</th><th>Risk</th></tr></thead><tbody>{results.map(row => { const p = payments.find(x => x.id === row.paymentId)!; return <tr key={p.id}><td><span className="mono">{p.id}</span><small>{p.date}</small></td><td><strong>{p.vendor}</strong><small>{row.reasons.slice(0, 2).join(' · ')}</small></td><td>{fmtMoney(p.amount)}</td><td><span className="risk-score">{Math.round(row.score * 100)}</span></td></tr> })}</tbody></table></div>
+  return <section className="panel anomaly-card"><div className="panel-head"><div><span className="section-kicker">CONTROL EXCEPTIONS</span><h2>Payments to review</h2></div><StatusPill tone="red">{results.length + (injectedCase ? 1 : 0)} flagged</StatusPill></div>
+    <div className="table-wrap"><table><thead><tr><th>Payment</th><th>Vendor</th><th>Value</th><th>Risk</th></tr></thead><tbody>{results.map(row => { const p = payments.find(x => x.id === row.paymentId)!; return <tr key={p.id}><td><span className="mono">{p.id}</span><small>{p.date}</small></td><td><strong>{p.vendor}</strong><small>{row.reasons.slice(0, 2).join(' · ')}</small></td><td>{fmtMoney(p.amount)}</td><td><span className="risk-score">{Math.round(row.score * 100)}</span></td></tr> })}{injectedCase && <tr className="injected-row"><td><span className="mono">P-2299</span><small>2026-09-06 · injected</small></td><td><strong>Helio Freight</strong><small>new vendor · duplicate bank acct</small></td><td>{fmtMoney(14750)}</td><td><span className="risk-score">99</span></td></tr>}</tbody></table></div>
   </section>
 }
 
 const phaseIcon: Record<TraceEvent['phase'], React.ElementType> = { plan: Target, tool: TerminalSquare, evaluate: FlaskConical, failure: AlertTriangle, improve: Sparkles, escalate: ShieldAlert, complete: CheckCircle2 }
 
-function TimelineView() {
+function TimelineView({ extraTrace = [] }: { extraTrace?: TraceEvent[] }) {
   const [filter, setFilter] = useState<'all' | TraceEvent['phase']>('all')
-  const visible = filter === 'all' ? traceEvents : traceEvents.filter(t => t.phase === filter)
+  const allTrace = [...traceEvents, ...extraTrace]
+  const visible = filter === 'all' ? allTrace : allTrace.filter(t => t.phase === filter)
   return <div className="view"><div className="page-title"><div><span className="page-label">AUDITABLE EXECUTION</span><h2>Execution trace</h2><p>Every plan, local tool call, failure, policy change, evaluation, and escalation in order.</p></div><button className="export-btn" onClick={() => downloadJson('ledgerforge-trace.json', traceEvents)}><Download size={15} />Export trace</button></div>
     <div className="trace-layout"><section className="panel trace-panel"><div className="trace-filters">{(['all', 'tool', 'failure', 'improve', 'evaluate', 'escalate'] as const).map(x => <button onClick={() => setFilter(x)} className={filter === x ? 'active' : ''} key={x}>{x === 'all' ? 'All events' : x}</button>)}</div>
       <div className="timeline">{visible.map((event) => { const Icon = phaseIcon[event.phase]; return <article className={`trace-event ${event.status}`} key={event.id}><div className="trace-time"><span>{event.time}</span><small>{event.id}</small></div><div className="trace-node"><Icon size={15} /></div><div className="trace-body"><div><StatusPill tone={event.status === 'success' ? 'green' : event.status === 'error' ? 'red' : event.status === 'warning' ? 'amber' : 'blue'}>{event.phase}</StatusPill>{event.tool && <code>{event.tool}</code>}{event.durationMs && <em>{event.durationMs}ms</em>}</div><h3>{event.title}</h3><p>{event.detail}</p></div></article> })}</div>
@@ -224,16 +230,25 @@ function App() {
   const [decision, setDecisionRaw] = useState<string | null>(() => localStorage.getItem('ledgerforge-decision'))
   const [about, setAbout] = useState(false)
   const [mobile, setMobile] = useState(false)
+  const [agentGenerated, setAgentGenerated] = useState(false)
+  const [agentImproved, setAgentImproved] = useState(false)
+  const [injectedCase, setInjectedCase] = useState(false)
+  const [controlMessage, setControlMessage] = useState('Ready · 3 goal contracts available for local execution')
+  const [extraTrace, setExtraTrace] = useState<TraceEvent[]>([])
   const setDecision = (v: string) => { setDecisionRaw(v || null); if (v) localStorage.setItem('ledgerforge-decision', v); else localStorage.removeItem('ledgerforge-decision') }
   const run = () => { setRunning(true); setCompleted(false); setView('overview'); window.setTimeout(() => { setRunning(false); setCompleted(true) }, 1450) }
-  const reset = () => { setDecision(''); setView('overview'); setCompleted(true); setAbout(false) }
+  const addControlTrace = (event: TraceEvent) => setExtraTrace(prev => [...prev, event])
+  const generateAgent = () => { setAgentGenerated(true); setControlMessage('Agent generated · 3 CFO workflows compiled into a goal contract'); addControlTrace({ id: 'T12', time: '09:42:31', phase: 'plan', title: 'Agent generated from goal contract', detail: 'Compiled close, controls, and runway workflows from deterministic local policies.', tool: 'agent.generate_local', status: 'success', durationMs: 12 }) }
+  const improveAgent = () => { setAgentImproved(true); setControlMessage('Agent improved · policy v2 verified against the frozen fixture'); addControlTrace({ id: 'T13', time: '09:42:44', phase: 'improve', title: 'Agent improvement applied', detail: 'Promoted alias, settlement-window, and duplicate-cluster signals after evaluator evidence.', tool: 'agent.improve_local', status: 'success', durationMs: 19 }) }
+  const injectFraud = () => { setInjectedCase(true); setControlMessage('Fraud case escalated · P-2299 Helio Freight · $14,750'); addControlTrace({ id: 'T14', time: '09:42:57', phase: 'escalate', title: 'Synthetic fraud case injected', detail: 'P-2299 Helio Freight · $14,750 · duplicate bank account and new vendor signals.', tool: 'fixture.inject_fraud', status: 'warning', durationMs: 4 }) }
+  const reset = () => { setDecision(''); setView('overview'); setCompleted(true); setAbout(false); setAgentGenerated(false); setAgentImproved(false); setInjectedCase(false); setControlMessage('Ready · 3 goal contracts available for local execution'); setExtraTrace([]) }
   const title = useMemo(() => ({ overview: 'Command center', timeline: 'Execution trace', 'time-machine': 'Time Machine', evidence: 'Evidence packet' })[view], [view])
   return <div className={`app-shell ${mobile ? 'mobile-open' : ''}`}>
     <div className="mobile-overlay" onClick={() => setMobile(false)} />
     <Sidebar view={view} setView={(v) => { setView(v); setMobile(false); document.title = `${title} — LedgerForge` }} openAbout={() => setAbout(true)} />
     <main className="content"><Header running={running} run={run} reset={reset} mobileNav={() => setMobile(true)} />
-      {view === 'overview' && <Overview setView={setView} decision={decision} setDecision={setDecision} completed={completed} />}
-      {view === 'timeline' && <TimelineView />}
+      {view === 'overview' && <Overview setView={setView} decision={decision} setDecision={setDecision} completed={completed} agentGenerated={agentGenerated} agentImproved={agentImproved} injectedCase={injectedCase} controlMessage={controlMessage} onGenerate={generateAgent} onImprove={improveAgent} onInject={injectFraud} />}
+      {view === 'timeline' && <TimelineView extraTrace={extraTrace} />}
       {view === 'time-machine' && <TimeMachineView />}
       {view === 'evidence' && <EvidenceView decision={decision} />}
     </main>

@@ -13,7 +13,7 @@ export const shouldRestartScene = (visible: boolean, reducedMotion: boolean, fra
 /** A small, dependency-free canvas scene that makes the review mechanics visible. */
 export default function AuthCanvasScene({ active, onSelectStage }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const hostRef = useRef<HTMLDivElement>(null)
+  const hostRef = useRef<HTMLElement>(null)
   const visibleRef = useRef(true)
   const reducedRef = useRef(false)
   const pointerRef = useRef({ x: 0, y: 0, fine: false })
@@ -147,5 +147,5 @@ export default function AuthCanvasScene({ active, onSelectStage }: Props) {
 
   useEffect(() => { if (reducedRef.current) drawRef.current?.() }, [active])
 
-  return <div ref={hostRef} className="auth-canvas-scene"><canvas ref={canvasRef} aria-label="Animated Bank to Ledger to Board review scene" role="img" /><p className="canvas-readout" aria-live="polite">Bank → Ledger → Board · stage {active} of 6</p><div className="canvas-hotspots" aria-label="Jump to a review stage"><button type="button" onClick={() => onSelectStage(3)} aria-label="Jump to Inspect stage">Inspect</button><button type="button" onClick={() => onSelectStage(4)} aria-label="Jump to Challenge stage">Challenge</button><button type="button" onClick={() => onSelectStage(6)} aria-label="Jump to Decide stage">Decide</button></div></div>
+  return <figure ref={hostRef} className="auth-canvas-scene" aria-labelledby="canvas-caption"><canvas ref={canvasRef} aria-label="Animated Bank to Ledger to Board review scene" role="img" /><figcaption id="canvas-caption" className="canvas-readout" aria-live="polite">Bank → Ledger → Board · stage {active} of 6</figcaption><div className="canvas-hotspots" aria-label="Jump to a review stage"><button type="button" onClick={() => onSelectStage(3)} aria-label="Jump to Inspect stage">Inspect</button><button type="button" onClick={() => onSelectStage(4)} aria-label="Jump to Challenge stage">Challenge</button><button type="button" onClick={() => onSelectStage(6)} aria-label="Jump to Decide stage">Decide</button></div></figure>
 }

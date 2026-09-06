@@ -119,3 +119,9 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgba(38,112,78,.2
   .auth-story-hero > p { font-size: 15px; }
   .auth-action-note { margin-bottom: 42px; }
 }
+.auth-progress { display:flex; align-items:center; gap:6px; margin:14px 0 0 30px; }
+.auth-progress span { width:22px; height:3px; border-radius:4px; background:rgba(161,201,173,.2); transition:background .4s ease, width .4s ease; }
+.auth-progress span.filled { width:30px; background:#73c995; }
+.auth-story-step:focus-visible { outline:2px solid #78d09a; outline-offset:5px; }
+@media (prefers-reduced-motion: reduce) { .auth-progress span { transition:none; } }
+@media (max-width:800px) { .auth-progress { margin-left:8px; } .auth-progress span { width:16px; } .auth-progress span.filled { width:22px; } }

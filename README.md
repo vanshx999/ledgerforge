@@ -43,7 +43,7 @@ After sign-in, the overview includes **Your CFO history**. It is transparently s
 ## Five-minute demo flow
 
 1. Sign in with the local demo account, then open **Command center**. The seeded run is already complete so the story is visible immediately.
-2. Click **Run all goals** to replay the run. The three goal contracts are *Close cash position*, *Surface payment risk*, and *Protect operating runway*.
+2. Click **Run CFO Time Machine** to replay the same close review. The three selectable CFO questions are *Close cash position*, *Surface payment risk*, and *Protect operating runway*.
 3. Read **Policy changed. Outcomes improved.** The before/after cards are measured from the same frozen inputs, not invented progress.
 4. Open **Execution trace**. Filter `failure`, `improve`, or `evaluate` to see the exact tool calls, deliberate failures, classifications, policy patch, and evaluator gates.
 5. Open **Time Machine** to compare v1/v2 row by row. The reconciliation view explains why aliases, a ±2 day settlement window, and duplicate-cluster signals fixed the misses.

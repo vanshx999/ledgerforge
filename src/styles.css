@@ -195,3 +195,13 @@ button:focus-visible, input:focus-visible { outline: 3px solid rgba(38,112,78,.2
 .auth-progress button { width:22px; height:4px; padding:0; border:0; border-radius:4px; background:rgba(161,201,173,.2); cursor:pointer; transition:background .4s ease,width .4s ease,transform .18s ease; }.auth-progress button.filled { width:30px; background:#73c995; }.auth-progress button:hover { transform:translateY(-1px); background:#a4d9b3; }.auth-progress button:focus-visible { outline:2px solid #9be0ad; outline-offset:4px; }
 @media (prefers-reduced-motion:reduce) { .auth-progress button { transition:none; } }
 @media (max-width:600px) { .settings-modal,.onboarding-modal { padding:24px 20px; max-height:calc(100vh - 24px); }.settings-modal h2,.onboarding-modal h2 { font-size:21px; }.settings-actions { flex-direction:column-reverse; }.settings-actions button { width:100%; justify-content:center; } }
+
+/* Canvas onboarding scene: one finance story, rendered at a capped DPR for fast static hosting. */
+.auth-canvas-scene { position:relative; width:min(520px,100%); height:292px; margin:0 auto 10px; border:1px solid rgba(151,202,164,.2); border-radius:14px; overflow:hidden; background:#0c2017; box-shadow:0 20px 45px rgba(0,0,0,.2),inset 0 1px rgba(255,255,255,.1); }
+.auth-canvas-scene canvas { display:block; width:100%; height:100%; }
+.canvas-hotspots { position:absolute; inset:0; pointer-events:none; }
+.canvas-hotspots button { pointer-events:auto; position:absolute; min-height:30px; padding:6px 10px; border:1px solid rgba(173,211,183,.35); border-radius:7px; background:rgba(20,51,35,.9); color:#e2f1e5; font-size:11px; font-weight:700; cursor:pointer; transition:transform .18s ease,background .18s ease,box-shadow .18s ease; }
+.canvas-hotspots button:nth-child(1) { left:3%; bottom:9%; }.canvas-hotspots button:nth-child(2) { right:2%; top:8%; }.canvas-hotspots button:nth-child(3) { right:16%; bottom:8%; }
+.canvas-hotspots button:hover,.canvas-hotspots button:focus-visible { transform:translateY(-2px); background:#2d6748; box-shadow:0 8px 14px rgba(0,0,0,.22); }.canvas-hotspots button:focus-visible { outline:2px solid #a3dfb1; outline-offset:3px; }
+@media (prefers-reduced-motion:reduce) { .auth-canvas-scene { box-shadow:0 12px 25px rgba(0,0,0,.16); } .canvas-hotspots button { transition:none; } }
+@media (max-width:760px) { .auth-canvas-scene { height:145px; margin-bottom:-18px; border-radius:10px; } .canvas-hotspots button { min-height:25px; padding:4px 7px; font-size:9px; } }

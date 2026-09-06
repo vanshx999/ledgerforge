@@ -16,6 +16,7 @@ import { DEMO_EMAIL, DEMO_PASSWORD, demoSession, loadSession, isDemoCredential, 
 import { appendHistory, getHistory, type CfoHistoryRecord } from './history'
 import { clearDemoData, DEFAULT_REVIEW_SETTINGS, loadReviewSettings, saveReviewSettings, type ReviewSettings } from './settings'
 import type { Goal, RunSnapshot, TraceEvent } from './types'
+import AuthCanvasScene from './AuthCanvasScene'
 
 type View = 'overview' | 'timeline' | 'time-machine' | 'evidence'
 
@@ -317,8 +318,7 @@ const authSteps = [
 ]
 
 function AuthScene({ active, onSelectStage }: { active: number; onSelectStage: (stage: number) => void }) {
-  const hotspots = [{ stage: 3, label: 'Inspect signals', className: 'hotspot-bank' }, { stage: 4, label: 'Challenge risk', className: 'hotspot-risk' }, { stage: 6, label: 'Read briefing', className: 'hotspot-brief' }]
-  return <div className={`auth-scene scene-active-${active}`} role="group" aria-label="Interactive Bank to Ledger to Board review map"><div className="scene-ground" aria-hidden="true"/><div className="scene-link link-bank" aria-hidden="true"/><div className="scene-link link-ledger" aria-hidden="true"/><div className="scene-ledger ledger-one"><span>Bank</span><b>8 lines</b><small>inspect</small></div><div className="scene-ledger ledger-two"><span>Ledger</span><b>8 entries</b><small>reconcile</small></div><div className="scene-ledger ledger-three"><span>Board</span><b>CFO packet</b><small>decide</small></div><div className="scene-agent agent-one" aria-label="Planner agent"><Bot size={13}/></div><div className="scene-agent agent-two" aria-label="Risk agent"><Search size={13}/></div><div className="scene-agent agent-three" aria-label="Skeptic agent"><ShieldCheck size={13}/></div><div className="scene-issue">{active >= 5 ? <><Check size={13}/>CFO review</> : active >= 4 ? <><AlertTriangle size={13}/>Risk found</> : <><CircleDot size={13}/>Signals</>}</div><div className="scene-score"><span>CONFIDENCE</span><strong>{active >= 6 ? '94' : active >= 5 ? '82' : active >= 4 ? '61' : '—'}</strong><small>/100</small></div>{hotspots.map(hotspot => <button key={hotspot.stage} className={`scene-hotspot ${hotspot.className}`} type="button" onClick={() => onSelectStage(hotspot.stage)} aria-label={`Jump to stage ${hotspot.stage}: ${hotspot.label}`}><span>{hotspot.stage.toString().padStart(2, '0')}</span><b>{hotspot.label}</b></button>)}<div className="scene-story-label">{authSteps[Math.min(authSteps.length - 1, Math.max(0, active - 1))].tag}</div></div>
+  return <AuthCanvasScene active={active} onSelectStage={onSelectStage} />
 }
 
 function AuthStory() {

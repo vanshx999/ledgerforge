@@ -5,6 +5,8 @@ type Props = { active: number; onSelectStage: (stage: number) => void }
 type Point = { x: number; y: number }
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
+export const normalizeSceneProgress = (scrollY: number, start: number, end: number) => end <= start ? 0 : clamp((scrollY - start) / (end - start), 0, 1)
+export const shouldRunScene = (visible: boolean, reducedMotion: boolean) => visible && !reducedMotion
 
 /** A small, dependency-free canvas scene that makes the review mechanics visible. */
 export default function AuthCanvasScene({ active, onSelectStage }: Props) {
@@ -15,6 +17,7 @@ export default function AuthCanvasScene({ active, onSelectStage }: Props) {
   const pointerRef = useRef({ x: 0, y: 0, fine: false })
   const frameRef = useRef<number | null>(null)
   const drawRef = useRef<(() => void) | null>(null)
+  const scrollProgressRef = useRef(0)
   const timeRef = useRef(0)
   const activeRef = useRef(active)
   activeRef.current = active
@@ -42,7 +45,17 @@ export default function AuthCanvasScene({ active, onSelectStage }: Props) {
       context.setTransform(dpr, 0, 0, dpr, 0, 0)
       draw(0)
     }
-    const onMediaChange = () => { reducedRef.current = media.matches; if (media.matches) draw(timeRef.current) }
+    let scrollFrame: number | null = null
+    const updateScrollProgress = () => {
+      const story = host.closest('.auth-story-column')
+      const steps = story?.querySelector('.auth-steps') as HTMLElement | null
+      const start = (steps?.offsetTop ?? host.offsetTop) - window.innerHeight * .62
+      const end = start + Math.max(1, (steps?.offsetHeight ?? 700) - window.innerHeight * .25)
+      scrollProgressRef.current = normalizeSceneProgress(window.scrollY, start, end)
+      if (reducedRef.current) draw(timeRef.current)
+    }
+    const onScroll = () => { if (scrollFrame === null) scrollFrame = requestAnimationFrame(() => { scrollFrame = null; updateScrollProgress() }) }
+    const onMediaChange = () => { reducedRef.current = media.matches; if (media.matches) draw(timeRef.current); else if (shouldRunScene(visibleRef.current, reducedRef.current) && frameRef.current === null) frameRef.current = requestAnimationFrame(loop) }
     const onPointerMove = (event: PointerEvent) => {
       if (event.pointerType !== 'mouse' || reducedRef.current) return
       const rect = host.getBoundingClientRect()
@@ -51,18 +64,19 @@ export default function AuthCanvasScene({ active, onSelectStage }: Props) {
     const onPointerLeave = () => { pointerRef.current = { x: 0, y: 0, fine: false } }
     const observer = new IntersectionObserver(([entry]) => {
       visibleRef.current = entry.isIntersecting
-      if (visibleRef.current && !reducedRef.current && frameRef.current === null) frameRef.current = requestAnimationFrame(loop)
+      if (shouldRunScene(visibleRef.current, reducedRef.current) && frameRef.current === null) frameRef.current = requestAnimationFrame(loop)
     }, { threshold: .05 })
     observer.observe(host)
     const resizeObserver = new ResizeObserver(resize)
     resizeObserver.observe(host)
     host.addEventListener('pointermove', onPointerMove)
     host.addEventListener('pointerleave', onPointerLeave)
+    window.addEventListener('scroll', onScroll, { passive: true })
     media.addEventListener?.('change', onMediaChange)
-    resize()
+    resize(); updateScrollProgress()
     const loop = (now: number) => {
       frameRef.current = null
-      if (!visibleRef.current || reducedRef.current) return
+      if (!shouldRunScene(visibleRef.current, reducedRef.current)) return
       timeRef.current = now
       draw(now)
       frameRef.current = requestAnimationFrame(loop)
@@ -71,13 +85,17 @@ export default function AuthCanvasScene({ active, onSelectStage }: Props) {
     return () => {
       if (frameRef.current !== null) cancelAnimationFrame(frameRef.current)
       observer.disconnect(); resizeObserver.disconnect()
-      host.removeEventListener('pointermove', onPointerMove); host.removeEventListener('pointerleave', onPointerLeave)
+      host.removeEventListener('pointermove', onPointerMove); host.removeEventListener('pointerleave', onPointerLeave); window.removeEventListener('scroll', onScroll); if (scrollFrame !== null) cancelAnimationFrame(scrollFrame)
       media.removeEventListener?.('change', onMediaChange)
     }
 
     function draw(now: number) {
       const ctx = context
       const stage = activeRef.current
+      const progress = scrollProgressRef.current
+      const inspect = clamp(progress / .3, 0, 1)
+      const reconcile = clamp((progress - .18) / .35, 0, 1)
+      const lock = clamp((progress - .55) / .4, 0, 1)
       const t = now / 1000
       const pointer = pointerRef.current
       ctx.clearRect(0, 0, width, height)
@@ -104,11 +122,11 @@ export default function AuthCanvasScene({ active, onSelectStage }: Props) {
         ctx.fillStyle = '#738a79'; ctx.font = '10px Inter, sans-serif'; ctx.fillText(depth, p.x, p.y + 43)
       }
       // Three planes only: frozen bank feed, reconciled ledger, CFO board packet.
-      plane(35, 142, 'BANK', '8 lines', 'inspect', stage >= 3)
-      plane(170, 111, 'LEDGER', '8 entries', 'reconcile', stage >= 3)
-      plane(305, 80, 'BOARD', 'CFO brief', 'decide', stage >= 6)
+      plane(35, 142 - inspect * 9, 'BANK', '8 lines', 'inspect', stage >= 3 || inspect > .4)
+      plane(170 - reconcile * 13, 111 - reconcile * 9, 'LEDGER', '8 entries', 'reconcile', stage >= 3 || reconcile > .35)
+      plane(305 - lock * 16, 80 - lock * 9, 'BOARD', 'CFO brief', 'decide', stage >= 6 || lock > .4)
       const path = (a: Point, b: Point, activePath: boolean) => { const p1 = project(a); const p2 = project(b); ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.strokeStyle = activePath ? '#83c99a' : 'rgba(137,188,150,.35)'; ctx.lineWidth = activePath ? 2 : 1; ctx.setLineDash(activePath ? [] : [3, 4]); ctx.stroke(); ctx.setLineDash([]) }
-      path({ x: 145, y: 169 }, { x: 170, y: 153 }, stage >= 2); path({ x: 280, y: 138 }, { x: 305, y: 122 }, stage >= 5)
+      path({ x: 145 - reconcile * 13, y: 169 - inspect * 9 }, { x: 170 - reconcile * 13, y: 153 - reconcile * 9 }, stage >= 2 || reconcile > .2); path({ x: 280 - lock * 16, y: 138 - reconcile * 9 }, { x: 305 - lock * 16, y: 122 - lock * 9 }, stage >= 5 || lock > .2)
       // Transactions travel from the bank plane to the ledger plane; a flagged item reroutes at the skeptic stage.
       for (let i = 0; i < 8; i++) {
         const progress = ((t * .18 + i / 8) % 1)
@@ -127,5 +145,5 @@ export default function AuthCanvasScene({ active, onSelectStage }: Props) {
 
   useEffect(() => { if (reducedRef.current) drawRef.current?.() }, [active])
 
-  return <div ref={hostRef} className="auth-canvas-scene"><canvas ref={canvasRef} aria-label="Animated Bank to Ledger to Board review scene" role="img" /><div className="canvas-hotspots" aria-label="Jump to a review stage"><button type="button" onClick={() => onSelectStage(3)} aria-label="Jump to Inspect stage">Inspect</button><button type="button" onClick={() => onSelectStage(4)} aria-label="Jump to Challenge stage">Challenge</button><button type="button" onClick={() => onSelectStage(6)} aria-label="Jump to Decide stage">Decide</button></div></div>
+  return <div ref={hostRef} className="auth-canvas-scene"><canvas ref={canvasRef} aria-label="Animated Bank to Ledger to Board review scene" role="img" /><p className="canvas-readout" aria-live="polite">Bank → Ledger → Board · stage {active} of 6</p><div className="canvas-hotspots" aria-label="Jump to a review stage"><button type="button" onClick={() => onSelectStage(3)} aria-label="Jump to Inspect stage">Inspect</button><button type="button" onClick={() => onSelectStage(4)} aria-label="Jump to Challenge stage">Challenge</button><button type="button" onClick={() => onSelectStage(6)} aria-label="Jump to Decide stage">Decide</button></div></div>
 }

@@ -12,7 +12,7 @@ import {
   matchTransactions, traceEvents,
 } from './engine'
 import { ledgerEntries } from './data'
-import { DEMO_EMAIL, DEMO_PASSWORD, demoSession, loadSession, isDemoCredential, parseGoogleCredential, saveSession, SESSION_KEY, type AuthSession } from './auth'
+import { DEMO_EMAIL, DEMO_PASSWORD, demoSession, googleSignInAvailable, loadSession, isDemoCredential, parseGoogleCredential, saveSession, SESSION_KEY, type AuthSession } from './auth'
 import { appendHistory, getHistory, type CfoHistoryRecord } from './history'
 import { clearDemoData, DEFAULT_REVIEW_SETTINGS, loadReviewSettings, saveReviewSettings, type ReviewSettings } from './settings'
 import type { Goal, RunSnapshot, TraceEvent } from './types'
@@ -286,7 +286,7 @@ function OnboardingModal({ close }: { close: () => void }) { return <ModalShell 
 
 function GoogleSignIn({ onAuthenticated }: { onAuthenticated: (session: AuthSession) => void }) {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined
-  const [state, setState] = useState<'disabled' | 'loading' | 'ready' | 'error'>(clientId ? 'loading' : 'disabled')
+  const [state, setState] = useState<'loading' | 'ready' | 'error'>(googleSignInAvailable(clientId) ? 'loading' : 'error')
   const [message, setMessage] = useState('')
   useEffect(() => {
     if (!clientId) return
@@ -304,7 +304,7 @@ function GoogleSignIn({ onAuthenticated }: { onAuthenticated: (session: AuthSess
     if (existing) { existing.addEventListener('load', initialize, { once: true }); if ((window as Window & { google?: any }).google) initialize(); return }
     const script = document.createElement('script'); script.src = 'https://accounts.google.com/gsi/client'; script.async = true; script.dataset.googleIdentity = 'true'; script.onload = initialize; script.onerror = () => { setState('error'); setMessage('Google sign-in could not be loaded.'); }; document.head.appendChild(script)
   }, [clientId, onAuthenticated])
-  if (!clientId) return <div className="google-auth unavailable" role="status"><span className="google-status">Google sign-in is unavailable in this static demo.</span><span>Set VITE_GOOGLE_CLIENT_ID to enable it. Use the local demo account below.</span></div>
+  if (!googleSignInAvailable(clientId)) return null
   return <div className="google-auth"><button type="button" disabled={state !== 'ready'} onClick={() => (window as Window & { google?: any }).google?.accounts.id.prompt()}>{state === 'loading' ? 'Loading Google sign-in…' : 'Continue with Google'}</button>{message && <span role="alert">{message}</span>}</div>
 }
 

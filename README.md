@@ -28,7 +28,7 @@ Once inside, follow the friendly path **Run CFO Time Machine → Review activity
 
 ### Optional Google sign-in
 
-LedgerForge can use [Google Identity Services](https://accounts.google.com/gsi/client) when a public browser OAuth client ID is configured. It is intentionally **disabled** in the public demo until `VITE_GOOGLE_CLIENT_ID` is provided; the page says so and the local demo remains fully usable.
+LedgerForge can use [Google Identity Services](https://accounts.google.com/gsi/client) when a public browser OAuth client ID is configured. It is intentionally **hidden** in the public demo until `VITE_GOOGLE_CLIENT_ID` is provided; the local demo remains fully usable and no dead Google control is shown.
 
 1. Create a Google OAuth **Web application** client in Google Cloud and add your deployed Pages origin (`https://vanshx999.github.io`) to Authorized JavaScript origins.
 2. In GitHub, open **Settings → Secrets and variables → Actions → Variables** and add repository variable `VITE_GOOGLE_CLIENT_ID` with the client ID. A client ID is public configuration, not a client secret—never add a secret to this static app.

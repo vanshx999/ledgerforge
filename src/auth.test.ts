@@ -1,9 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { DEMO_EMAIL, DEMO_PASSWORD, hasDemoSession, isDemoCredential, parseGoogleCredential } from './auth'
+import { DEMO_EMAIL, DEMO_PASSWORD, googleSignInAvailable, hasDemoSession, isDemoCredential, parseGoogleCredential } from './auth'
 
 const credential = (payload: object) => `header.${btoa(JSON.stringify(payload)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')}.signature`
 
 describe('local demo authentication', () => {
+  it('hides the optional Google path until a client id is configured', () => {
+    expect(googleSignInAvailable()).toBe(false)
+    expect(googleSignInAvailable('   ')).toBe(false)
+    expect(googleSignInAvailable('demo-client.apps.googleusercontent.com')).toBe(true)
+  })
+
   it('accepts only the documented local demo credential', () => {
     expect(isDemoCredential(DEMO_EMAIL, DEMO_PASSWORD)).toBe(true)
     expect(isDemoCredential(' CFO@ORBITSYSTEMS.DEMO ', DEMO_PASSWORD)).toBe(true)

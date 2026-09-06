@@ -24,6 +24,9 @@ export function isDemoCredential(email: string, password: string): boolean {
   return email.trim().toLowerCase() === DEMO_EMAIL && password === DEMO_PASSWORD
 }
 
+/** Google Identity Services is opt-in for the static client; an empty ID means hide the path. */
+export function googleSignInAvailable(clientId?: string): boolean { return Boolean(clientId?.trim()) }
+
 export function demoSession(): AuthSession {
   return { kind: 'demo', email: DEMO_EMAIL, name: 'Vansh Mehendr' }
 }

@@ -39,7 +39,13 @@ export function matchTransactions(banks: BankEntry[], ledger: LedgerEntry[], mod
   })
 }
 
-export function detectFraud(input: Payment[], mode: RunMode, sensitivity: 'low' | 'standard' | 'high' = 'standard'): FraudResult[] {
+export interface SnapshotOptions {
+  settlementWindowDays?: number
+  fraudSensitivity?: 'low' | 'standard' | 'high'
+  materialityThreshold?: number
+}
+
+export function detectFraud(input: Payment[], mode: RunMode, sensitivity: 'low' | 'standard' | 'high' = 'standard', materialityThreshold = 10_000): FraudResult[] {
   const duplicateKeys = new Map<string, number>()
   input.forEach((p) => duplicateKeys.set(`${p.vendor}:${p.amount}`, (duplicateKeys.get(`${p.vendor}:${p.amount}`) ?? 0) + 1))
   return input.map((payment) => {
@@ -47,12 +53,14 @@ export function detectFraud(input: Payment[], mode: RunMode, sensitivity: 'low' 
     let score = 0.05
     if (payment.isNewVendor) { score += mode === 'improved' ? 0.34 : 0.2; reasons.push('new vendor') }
     if (payment.hour < 6 || payment.hour > 21) { score += mode === 'improved' ? 0.29 : 0.2; reasons.push('after-hours') }
-    if (payment.amount >= 20_000) { score += 0.4; reasons.push('high value') }
+    if (payment.amount >= materialityThreshold) { score += 0.4; reasons.push('high value') }
     if (mode === 'improved' && (duplicateKeys.get(`${payment.vendor}:${payment.amount}`) ?? 0) > 1) { score += 0.32; reasons.push('duplicate amount/vendor') }
     if (mode === 'improved' && payment.amount % 100 === 0 && payment.amount >= 9_000) { score += 0.08; reasons.push('round amount') }
     score = Math.min(0.99, score)
     const threshold = mode === 'improved' ? (sensitivity === 'high' ? 0.5 : sensitivity === 'low' ? 0.76 : 0.62) : 0.8
-    return { paymentId: payment.id, score, flagged: score >= threshold, reasons, expectedFraud: payment.expectedFraud }
+    const material = payment.amount >= materialityThreshold * 0.9
+    if (!material) reasons.push('below materiality threshold')
+    return { paymentId: payment.id, score, flagged: score >= threshold && material, reasons, expectedFraud: payment.expectedFraud }
   })
 }
 
@@ -69,13 +77,14 @@ export function evaluateMatches(rows: MatchResult[]): Evaluation {
   return evaluateBinary(rows.map((r) => ({ flagged: Boolean(r.ledgerId), expectedFraud: r.expectedMatch })))
 }
 
-export function createSnapshot(mode: RunMode): RunSnapshot {
-  const matches = matchTransactions(bankEntries, ledgerEntries, mode)
-  const fraud = detectFraud(payments, mode)
+export function createSnapshot(mode: RunMode, options: SnapshotOptions = {}): RunSnapshot {
+  const matches = matchTransactions(bankEntries, ledgerEntries, mode, options.settlementWindowDays)
+  const fraud = detectFraud(payments, mode, options.fraudSensitivity ?? 'standard', options.materialityThreshold ?? 10_000)
   const reconciliation = evaluateMatches(matches)
   const fraudEval = evaluateBinary(fraud)
   const unmatchedCash = matches.filter((m) => !m.ledgerId).reduce((sum, row) => sum + Math.abs(bankEntries.find((b) => b.id === row.bankId)?.amount ?? 0), 0)
   const fraudExposure = fraud.filter((f) => f.expectedFraud && !f.flagged).reduce((sum, row) => sum + (payments.find((p) => p.id === row.paymentId)?.amount ?? 0), 0)
+  const flaggedExposure = fraud.filter((f) => f.flagged).reduce((sum, row) => sum + (payments.find((p) => p.id === row.paymentId)?.amount ?? 0), 0)
   return {
     mode,
     timestamp: mode === 'baseline' ? '09:41:12' : '09:42:08',
@@ -83,6 +92,7 @@ export function createSnapshot(mode: RunMode): RunSnapshot {
     fraud: fraudEval,
     unmatchedCash,
     fraudExposure,
+    flaggedExposure,
     runwayMonths: mode === 'baseline' ? 9.4 : 11.8,
     confidence: mode === 'baseline' ? 0.61 : 0.94,
   }

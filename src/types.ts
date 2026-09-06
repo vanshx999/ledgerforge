@@ -84,6 +84,7 @@ export interface RunSnapshot {
   fraud: Evaluation
   unmatchedCash: number
   fraudExposure: number
+  flaggedExposure: number
   runwayMonths: number
   confidence: number
 }

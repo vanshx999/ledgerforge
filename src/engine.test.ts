@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { bankEntries, ledgerEntries, payments } from './data'
 import {
-  baselineSnapshot, buildEscalation, classifyFailure, detectFraud, evaluateBinary,
+  baselineSnapshot, buildEscalation, classifyFailure, createSnapshot, detectFraud, evaluateBinary,
   improvedSnapshot, matchTransactions, normalizeCounterparty,
 } from './engine'
 
@@ -21,6 +21,15 @@ describe('LedgerForge fraud controls', () => {
     expect(after.filter(x => x.flagged && x.expectedFraud)).toHaveLength(3)
     expect(after.filter(x => x.flagged && !x.expectedFraud)).toHaveLength(0)
     expect(after.find(x => x.paymentId === 'P-2204')?.reasons).toContain('duplicate amount/vendor')
+  })
+
+  it('applies materiality to the configured rerun and exposure', () => {
+    const standard = createSnapshot('improved', { settlementWindowDays: 2, fraudSensitivity: 'standard', materialityThreshold: 10_000 })
+    const highMateriality = createSnapshot('improved', { settlementWindowDays: 2, fraudSensitivity: 'standard', materialityThreshold: 25_000 })
+    expect(standard.fraud.truePositives + standard.fraud.falsePositives).toBe(3)
+    expect(highMateriality.fraud.truePositives + highMateriality.fraud.falsePositives).toBe(1)
+    expect(highMateriality.flaggedExposure).toBeLessThan(standard.flaggedExposure)
+    expect(highMateriality.fraud.falseNegatives).toBeGreaterThan(standard.fraud.falseNegatives)
   })
 })
 

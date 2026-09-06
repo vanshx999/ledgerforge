@@ -12,6 +12,7 @@ import {
   matchTransactions, traceEvents,
 } from './engine'
 import { ledgerEntries } from './data'
+import { DEMO_EMAIL, DEMO_PASSWORD, hasDemoSession, isDemoCredential, SESSION_KEY } from './auth'
 import type { Goal, RunSnapshot, TraceEvent } from './types'
 
 type View = 'overview' | 'timeline' | 'time-machine' | 'evidence'
@@ -36,7 +37,7 @@ function StatusPill({ children, tone = 'neutral' }: { children: React.ReactNode;
   return <span className={`pill ${tone}`}><span className="pill-dot" />{children}</span>
 }
 
-function Sidebar({ view, setView, openAbout }: { view: View; setView: (view: View) => void; openAbout: () => void }) {
+function Sidebar({ view, setView, openAbout, signOut }: { view: View; setView: (view: View) => void; openAbout: () => void; signOut: () => void }) {
   const items = [
     { id: 'overview' as View, label: 'Command center', icon: LayoutDashboard },
     { id: 'timeline' as View, label: 'Execution trace', icon: Activity, badge: '11' },
@@ -57,6 +58,7 @@ function Sidebar({ view, setView, openAbout }: { view: View; setView: (view: Vie
       <div className="local-banner"><ShieldCheck size={16} /><div><strong>Local-only mode</strong><span>No credentials · no egress</span></div></div>
       <button className="about-link" onClick={openAbout}><HelpCircle size={16} />About LedgerForge</button>
       <div className="profile"><div className="avatar">VM</div><div><strong>Vansh M.</strong><small>CFO workspace owner</small></div><span className="online" /></div>
+      <button className="sign-out" onClick={signOut}>Sign out</button>
     </div>
   </aside>
 }
@@ -223,7 +225,22 @@ function BriefSection({ number, title, children }: { number: string; title: stri
 
 function AboutModal({ close }: { close: () => void }) { return <div className="modal-backdrop" onMouseDown={close}><div className="modal" onMouseDown={e => e.stopPropagation()}><button className="modal-close" onClick={close}><X size={18}/></button><div className="about-mark"><Logo /></div><h2>Finance operations you can interrogate.</h2><p>LedgerForge is a deterministic demonstration of goal-driven, tool-using finance automation. It plans work, runs local tools, measures its own output, learns from classified failures, reruns against frozen inputs, and escalates ambiguity rather than inventing certainty.</p><div className="about-grid"><div><ShieldCheck/><strong>Local by design</strong><span>No credentials or external services</span></div><div><Search/><strong>Evidence first</strong><span>Every conclusion links to a trace</span></div><div><Bot/><strong>Goal driven</strong><span>Thresholds define when work is done</span></div><div><Sparkles/><strong>Actually adaptive</strong><span>Before/after evaluation is measured</span></div></div><div className="modal-note"><b>Demo data:</b> Orbit Systems is fictional. All transactions and conclusions are synthetic and repeatable.</div><button className="run-btn full" onClick={close}>Enter console</button></div></div> }
 
+function DemoAuth({ onAuthenticated }: { onAuthenticated: () => void }) {
+  const [email, setEmail] = useState(DEMO_EMAIL)
+  const [password, setPassword] = useState(DEMO_PASSWORD)
+  const [error, setError] = useState('')
+  const signIn = (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!isDemoCredential(email, password)) { setError('Use the provided demo credentials to enter the local workspace.'); return }
+    localStorage.setItem(SESSION_KEY, 'authenticated')
+    onAuthenticated()
+  }
+  const useDemo = () => { setEmail(DEMO_EMAIL); setPassword(DEMO_PASSWORD); setError(''); localStorage.setItem(SESSION_KEY, 'authenticated'); onAuthenticated() }
+  return <main className="auth-page"><div className="auth-wordmark"><Logo /><span>PRIVATE DEMO</span></div><section className="auth-layout"><div className="auth-intro"><span className="page-label"><ShieldCheck size={13} />ORBIT SYSTEMS FINANCE</span><h1>The operating system for a confident close.</h1><p>LedgerForge turns finance signals into auditable decisions—without sacrificing judgment, controls, or clarity.</p><div className="auth-proof"><div><strong>3</strong><span>active CFO workflows</span></div><div><strong>100%</strong><span>reconciliation recall</span></div><div><strong>0</strong><span>external connections</span></div></div></div><form className="auth-card" onSubmit={signIn}><div className="auth-card-top"><div className="auth-shield"><ShieldCheck size={20} /></div><div><span>ORBIT SYSTEMS</span><h2>Sign in to LedgerForge</h2></div></div><p>Use the local demo workspace to explore the September close.</p><label>Email<input aria-label="Email" type="email" value={email} onChange={event => setEmail(event.target.value)} autoComplete="email" /></label><label>Password<input aria-label="Password" type="password" value={password} onChange={event => setPassword(event.target.value)} autoComplete="current-password" /></label>{error && <p className="auth-error" role="alert">{error}</p>}<button className="auth-primary" type="submit">Sign in <ArrowRight size={16} /></button><button className="auth-demo" type="button" onClick={useDemo}>Use demo account</button><div className="auth-note"><ShieldCheck size={14} /><span><b>Demo authentication only</b> · no real credentials are sent or stored.</span></div></form></section><footer className="auth-footer"><span>© 2026 LedgerForge</span><span>Local deterministic environment · Orbit Systems is fictional</span></footer></main>
+}
+
 function App() {
+  const [authenticated, setAuthenticated] = useState(() => hasDemoSession(localStorage))
   const [view, setView] = useState<View>('overview')
   const [running, setRunning] = useState(false)
   const [completed, setCompleted] = useState(true)
@@ -243,9 +260,11 @@ function App() {
   const injectFraud = () => { setInjectedCase(true); setControlMessage('Fraud case escalated · P-2299 Helio Freight · $14,750'); addControlTrace({ id: 'T14', time: '09:42:57', phase: 'escalate', title: 'Synthetic fraud case injected', detail: 'P-2299 Helio Freight · $14,750 · duplicate bank account and new vendor signals.', tool: 'fixture.inject_fraud', status: 'warning', durationMs: 4 }) }
   const reset = () => { setDecision(''); setView('overview'); setCompleted(true); setAbout(false); setAgentGenerated(false); setAgentImproved(false); setInjectedCase(false); setControlMessage('Ready · 3 goal contracts available for local execution'); setExtraTrace([]) }
   const title = useMemo(() => ({ overview: 'Command center', timeline: 'Execution trace', 'time-machine': 'Time Machine', evidence: 'Evidence packet' })[view], [view])
+  const signOut = () => { localStorage.removeItem(SESSION_KEY); setAuthenticated(false); setMobile(false); setAbout(false) }
+  if (!authenticated) return <DemoAuth onAuthenticated={() => setAuthenticated(true)} />
   return <div className={`app-shell ${mobile ? 'mobile-open' : ''}`}>
     <div className="mobile-overlay" onClick={() => setMobile(false)} />
-    <Sidebar view={view} setView={(v) => { setView(v); setMobile(false); document.title = `${title} — LedgerForge` }} openAbout={() => setAbout(true)} />
+    <Sidebar view={view} setView={(v) => { setView(v); setMobile(false); document.title = `${title} — LedgerForge` }} openAbout={() => setAbout(true)} signOut={signOut} />
     <main className="content"><Header running={running} run={run} reset={reset} mobileNav={() => setMobile(true)} />
       {view === 'overview' && <Overview setView={setView} decision={decision} setDecision={setDecision} completed={completed} agentGenerated={agentGenerated} agentImproved={agentImproved} injectedCase={injectedCase} controlMessage={controlMessage} onGenerate={generateAgent} onImprove={improveAgent} onInject={injectFraud} />}
       {view === 'timeline' && <TimelineView extraTrace={extraTrace} />}

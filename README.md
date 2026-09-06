@@ -13,9 +13,18 @@ npm run build     # type-check + production bundle
 
 No API keys, database, network service, or external credentials are required. The synthetic Orbit Systems fixtures are checked into `src/data.ts`.
 
+## Local demo sign-in
+
+LedgerForge opens on a local demo authentication screen before the CFO console. Use either **Sign in** or **Use demo account** with the prefilled credentials:
+
+- **Email:** `cfo@orbitsystems.demo`
+- **Password:** `ledgerforge`
+
+This is a UX-only local gate: no real credential is sent, stored, or validated remotely. The browser stores only a local demo-session flag so a refresh keeps the workspace open; use **Sign out** in the sidebar to clear it.
+
 ## Five-minute demo flow
 
-1. Open **Command center**. The seeded run is already complete so the story is visible immediately.
+1. Sign in with the local demo account, then open **Command center**. The seeded run is already complete so the story is visible immediately.
 2. Click **Run all goals** to replay the run. The three goal contracts are *Close cash position*, *Surface payment risk*, and *Protect operating runway*.
 3. Read **Policy changed. Outcomes improved.** The before/after cards are measured from the same frozen inputs, not invented progress.
 4. Open **Execution trace**. Filter `failure`, `improve`, or `evaluate` to see the exact tool calls, deliberate failures, classifications, policy patch, and evaluator gates.

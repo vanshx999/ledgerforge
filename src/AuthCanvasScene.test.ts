@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeSceneProgress, shouldRunScene } from './AuthCanvasScene'
+import { normalizeSceneProgress, shouldRestartScene, shouldRunScene } from './AuthCanvasScene'
 
 describe('canvas onboarding motion guards', () => {
   it('clamps scroll progress to a predictable 0–1 range', () => {
@@ -12,5 +12,11 @@ describe('canvas onboarding motion guards', () => {
     expect(shouldRunScene(true, false)).toBe(true)
     expect(shouldRunScene(false, false)).toBe(false)
     expect(shouldRunScene(true, true)).toBe(false)
+  })
+  it('restarts RAF after reduced motion is turned off', () => {
+    expect(shouldRestartScene(true, false, false)).toBe(true)
+    expect(shouldRestartScene(true, false, true)).toBe(false)
+    expect(shouldRestartScene(true, true, false)).toBe(false)
+    expect(shouldRestartScene(false, false, false)).toBe(false)
   })
 })

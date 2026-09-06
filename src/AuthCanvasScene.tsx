@@ -7,6 +7,8 @@ type Point = { x: number; y: number }
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
 export const normalizeSceneProgress = (scrollY: number, start: number, end: number) => end <= start ? 0 : clamp((scrollY - start) / (end - start), 0, 1)
 export const shouldRunScene = (visible: boolean, reducedMotion: boolean) => visible && !reducedMotion
+/** Restart only when the scene is visible, motion is allowed, and no RAF is active. */
+export const shouldRestartScene = (visible: boolean, reducedMotion: boolean, frameActive: boolean) => shouldRunScene(visible, reducedMotion) && !frameActive
 
 /** A small, dependency-free canvas scene that makes the review mechanics visible. */
 export default function AuthCanvasScene({ active, onSelectStage }: Props) {
@@ -55,7 +57,7 @@ export default function AuthCanvasScene({ active, onSelectStage }: Props) {
       if (reducedRef.current) draw(timeRef.current)
     }
     const onScroll = () => { if (scrollFrame === null) scrollFrame = requestAnimationFrame(() => { scrollFrame = null; updateScrollProgress() }) }
-    const onMediaChange = () => { reducedRef.current = media.matches; if (media.matches) draw(timeRef.current); else if (shouldRunScene(visibleRef.current, reducedRef.current) && frameRef.current === null) frameRef.current = requestAnimationFrame(loop) }
+    const onMediaChange = () => { reducedRef.current = media.matches; if (media.matches) draw(timeRef.current); else if (shouldRestartScene(visibleRef.current, reducedRef.current, frameRef.current !== null)) frameRef.current = requestAnimationFrame(loop) }
     const onPointerMove = (event: PointerEvent) => {
       if (event.pointerType !== 'mouse' || reducedRef.current) return
       const rect = host.getBoundingClientRect()
@@ -64,7 +66,7 @@ export default function AuthCanvasScene({ active, onSelectStage }: Props) {
     const onPointerLeave = () => { pointerRef.current = { x: 0, y: 0, fine: false } }
     const observer = new IntersectionObserver(([entry]) => {
       visibleRef.current = entry.isIntersecting
-      if (shouldRunScene(visibleRef.current, reducedRef.current) && frameRef.current === null) frameRef.current = requestAnimationFrame(loop)
+      if (shouldRestartScene(visibleRef.current, reducedRef.current, frameRef.current !== null)) frameRef.current = requestAnimationFrame(loop)
     }, { threshold: .05 })
     observer.observe(host)
     const resizeObserver = new ResizeObserver(resize)

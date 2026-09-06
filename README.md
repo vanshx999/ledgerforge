@@ -22,6 +22,20 @@ LedgerForge opens on a local demo authentication screen before the CFO console. 
 
 This is a UX-only local gate: no real credential is sent, stored, or validated remotely. The browser stores only a local demo-session flag so a refresh keeps the workspace open; use **Sign out** in the sidebar to clear it.
 
+### Optional Google sign-in
+
+LedgerForge can use [Google Identity Services](https://accounts.google.com/gsi/client) when a public browser OAuth client ID is configured. It is intentionally **disabled** in the public demo until `VITE_GOOGLE_CLIENT_ID` is provided; the page says so and the local demo remains fully usable.
+
+1. Create a Google OAuth **Web application** client in Google Cloud and add your deployed Pages origin (`https://vanshx999.github.io`) to Authorized JavaScript origins.
+2. In GitHub, open **Settings → Secrets and variables → Actions → Variables** and add repository variable `VITE_GOOGLE_CLIENT_ID` with the client ID. A client ID is public configuration, not a client secret—never add a secret to this static app.
+3. Re-run the Pages workflow. The workflow passes that variable to Vite at build time.
+
+The static client decodes the Google Identity Services credential only after its callback, then checks audience, expiry, and verified-email claims before storing a local display session. It cannot perform cryptographic token-signature verification without a backend; production financial use should exchange the credential with a server that verifies the ID token and creates an HttpOnly session.
+
+## Your CFO history
+
+After sign-in, the overview includes **Your CFO history**. It is transparently stored only in browser `localStorage`, keyed to the signed-in account. The demo account starts with sensible synthetic history; new Google accounts start empty and receive records after a Time Machine replay or injected fraud review. These history entries are not cloud backups or authoritative accounting records.
+
 ## Five-minute demo flow
 
 1. Sign in with the local demo account, then open **Command center**. The seeded run is already complete so the story is visible immediately.

@@ -22,6 +22,10 @@ LedgerForge opens on a local demo authentication screen before the CFO console. 
 
 This is a UX-only local gate: no real credential is sent, stored, or validated remotely. The browser stores only a local demo-session flag so a refresh keeps the workspace open; use **Sign out** in the sidebar to clear it.
 
+The sign-in page is also a short, skippable product tour: scroll through the six review moves (choose a goal, assemble specialists, inspect synthetic signals, evaluate/challenge, escalate ambiguity, then improve and brief). The sticky visual is decorative and collapses to readable step cards for mobile or reduced-motion users. The final card links directly to **Sign in** / **Use demo account**.
+
+Once inside, follow the friendly path **Run CFO Time Machine → Review activity → record the CFO decision**. **Demo data** reloads the frozen Orbit Systems fixtures and clears stale local run state with a visible confirmation. **Review settings** opens a local panel where you can change settlement window, payment sensitivity, and materiality; saved settings are applied on the next rerun and can be reset to defaults.
+
 ### Optional Google sign-in
 
 LedgerForge can use [Google Identity Services](https://accounts.google.com/gsi/client) when a public browser OAuth client ID is configured. It is intentionally **disabled** in the public demo until `VITE_GOOGLE_CLIENT_ID` is provided; the page says so and the local demo remains fully usable.
@@ -61,4 +65,4 @@ This repository is designed for an AO desktop demo: keep the Vite dev process in
 
 ## Data and safety
 
-All names, amounts, dates, and conclusions are fictional. LedgerForge never sends data over the network, never executes payments, and never replaces CFO approval for the escalated revenue assumption. The reset action only clears the browser's local decision state.
+All names, amounts, dates, and conclusions are fictional. LedgerForge never sends data over the network, never executes payments, and never replaces CFO approval for the escalated revenue assumption. The reset action only clears the browser's local decision state. The reference fixture contains 8 bank lines, 8 ledger entries, 8 payments, and a monthly cash plan; headline demo results are 8/8 reconciled, 3 payment flags with $44.6k held for review, and 11.8 months of runway (+2.7 months of buffer). Recall means known-case coverage, precision means how many flags were real, and exposure is dollars to review—not confirmed loss.

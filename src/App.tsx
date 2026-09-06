@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Activity, AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, BookOpen,
   Bot, BrainCircuit, Check, CheckCircle2, ChevronDown, CircleDot, Clock3,
@@ -14,6 +14,7 @@ import {
 import { ledgerEntries } from './data'
 import { DEMO_EMAIL, DEMO_PASSWORD, demoSession, loadSession, isDemoCredential, parseGoogleCredential, saveSession, SESSION_KEY, type AuthSession } from './auth'
 import { appendHistory, getHistory, type CfoHistoryRecord } from './history'
+import { clearDemoData, DEFAULT_REVIEW_SETTINGS, loadReviewSettings, resetReviewSettings, saveReviewSettings, SETTINGS_KEY, type ReviewSettings } from './settings'
 import type { Goal, RunSnapshot, TraceEvent } from './types'
 
 type View = 'overview' | 'timeline' | 'time-machine' | 'evidence'
@@ -38,25 +39,25 @@ function StatusPill({ children, tone = 'neutral' }: { children: React.ReactNode;
   return <span className={`pill ${tone}`}><span className="pill-dot" />{children}</span>
 }
 
-function Sidebar({ view, setView, openAbout, signOut, account }: { view: View; setView: (view: View) => void; openAbout: () => void; signOut: () => void; account: AuthSession }) {
+function Sidebar({ view, setView, openAbout, signOut, account, openSettings, loadData, dataMessage }: { view: View; setView: (view: View) => void; openAbout: () => void; signOut: () => void; account: AuthSession; openSettings: () => void; loadData: () => void; dataMessage: string }) {
   const items = [
     { id: 'overview' as View, label: 'Close overview', icon: LayoutDashboard },
     { id: 'timeline' as View, label: 'Review activity', icon: Activity, badge: '11' },
     { id: 'time-machine' as View, label: 'CFO Time Machine', icon: GitCompareArrows },
     { id: 'evidence' as View, label: 'Board packet', icon: FileCheck2 },
   ]
-  return <aside className="sidebar">
+  return <aside id="ledgerforge-sidebar" className="sidebar">
     <Logo />
     <div className="workspace-switch"><div className="workspace-icon">OR</div><div><small>WORKSPACE</small><strong>Orbit Systems</strong></div><ChevronDown size={14} /></div>
     <nav>
       <span className="nav-label">SEPTEMBER CLOSE</span>
       {items.map(({ id, label, icon: Icon, badge }) => <button key={id} className={view === id ? 'active' : ''} onClick={() => setView(id)}><Icon size={17} /><span>{label}</span>{badge && <em>{badge}</em>}</button>)}
       <span className="nav-label second">REFERENCE</span>
-      <button><Database size={17} /><span>Demo data</span><i className="connected-dot" /></button>
-      <button><Settings2 size={17} /><span>Review settings</span></button>
+      <button onClick={loadData} title="Reload the synthetic demo fixtures"><Database size={17} /><span>Demo data</span><i className="connected-dot" /></button>
+      <button onClick={openSettings} title="Choose how the close review behaves"><Settings2 size={17} /><span>Review settings</span></button>
     </nav>
     <div className="sidebar-bottom">
-      <div className="local-banner"><ShieldCheck size={16} /><div><strong>Local-only mode</strong><span>No credentials · no egress</span></div></div>
+      <div className="local-banner"><ShieldCheck size={16} /><div><strong>Local-only mode</strong><span>{dataMessage || 'Synthetic demo data ready'}</span></div></div>
       <button className="about-link" onClick={openAbout}><HelpCircle size={16} />About LedgerForge</button>
       <div className="profile">{account.picture ? <img className="avatar profile-photo" src={account.picture} alt="" /> : <div className="avatar">{account.name.split(' ').map(part => part[0]).slice(0, 2).join('')}</div>}<div><strong>{account.name}</strong><small>{account.kind === 'google' ? account.email : 'CFO workspace owner'}</small></div><span className="online" /></div>
       <button className="sign-out" onClick={signOut}>Sign out</button>
@@ -64,9 +65,9 @@ function Sidebar({ view, setView, openAbout, signOut, account }: { view: View; s
   </aside>
 }
 
-function Header({ running, run, reset, mobileNav }: { running: boolean; run: () => void; reset: () => void; mobileNav: () => void }) {
+function Header({ running, run, reset, mobileNav, mobileOpen }: { running: boolean; run: () => void; reset: () => void; mobileNav: () => void; mobileOpen: boolean }) {
   return <header className="topbar">
-    <button className="mobile-menu" onClick={mobileNav}><Menu size={20} /></button>
+    <button className="mobile-menu" aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={mobileOpen} aria-controls="ledgerforge-sidebar" onClick={mobileNav}><Menu size={20} /></button>
     <div><div className="eyebrow">ORBIT SYSTEMS · SEPTEMBER CLOSE</div><h1>Close review</h1></div>
     <div className="top-actions">
       <div className="data-fresh"><span /><div><small>DATA FRESHNESS</small><strong>Live · 2m ago</strong></div></div>
@@ -143,20 +144,24 @@ function EscalationCard({ decision, onDecision }: { decision: string | null; onD
 
 function LedgerScene() {
   const [tilt, setTilt] = useState({ x: 0, y: 0 })
-  const move = (event: React.PointerEvent<HTMLDivElement>) => { const box = event.currentTarget.getBoundingClientRect(); setTilt({ x: ((event.clientY - box.top) / box.height - .5) * -5, y: ((event.clientX - box.left) / box.width - .5) * 7 }) }
-  return <div className="ledger-scene" onPointerMove={move} onPointerLeave={() => setTilt({ x: 0, y: 0 })} aria-label="Layered finance ledger visual"><div className="scene-orbit"/><div className="scene-stack" style={{ transform: `rotateX(${60 + tilt.x}deg) rotateZ(${-29 + tilt.y}deg)` }}><div className="scene-sheet sheet-back"/><div className="scene-sheet sheet-mid"><span/><span/><span/></div><div className="scene-sheet sheet-front"><div className="scene-total">$598.4k</div><div className="scene-bars"><i/><i/><i/><i/><i/></div></div></div><div className="scene-caption"><span>LIVE CLOSE MODEL</span><b>8/8 reconciled</b></div></div>
+  const [motion, setMotion] = useState(true)
+  useEffect(() => { const query = window.matchMedia('(prefers-reduced-motion: reduce)'); const update = () => setMotion(!query.matches); update(); query.addEventListener?.('change', update); return () => query.removeEventListener?.('change', update) }, [])
+  const move = (event: React.PointerEvent<HTMLDivElement>) => { if (!motion || event.pointerType !== 'mouse') return; const box = event.currentTarget.getBoundingClientRect(); setTilt({ x: ((event.clientY - box.top) / box.height - .5) * -5, y: ((event.clientX - box.left) / box.width - .5) * 7 }) }
+  return <div className="ledger-scene" onPointerMove={move} onPointerLeave={() => setTilt({ x: 0, y: 0 })} aria-hidden="true"><div className="scene-orbit"/><div className="scene-stack" style={{ transform: motion ? `rotateX(${60 + tilt.x}deg) rotateZ(${-29 + tilt.y}deg)` : 'rotateX(60deg) rotateZ(-29deg)' }}><div className="scene-sheet sheet-back"/><div className="scene-sheet sheet-mid"><span/><span/><span/></div><div className="scene-sheet sheet-front"><div className="scene-total">$598.4k</div><div className="scene-bars"><i/><i/><i/><i/><i/></div></div></div><div className="scene-caption"><span>LOCAL CASH POSITION</span><b>8/8 reconciled</b></div></div>
 }
 
 function TiltCard({ className, children }: { className: string; children: React.ReactNode }) {
   const [transform, setTransform] = useState('')
+  const [motion, setMotion] = useState(true)
+  useEffect(() => { const query = window.matchMedia('(prefers-reduced-motion: reduce)'); const update = () => setMotion(!query.matches); update(); query.addEventListener?.('change', update); return () => query.removeEventListener?.('change', update) }, [])
   const move = (event: React.PointerEvent<HTMLElement>) => {
-    if (event.pointerType !== 'mouse') return
+    if (!motion || event.pointerType !== 'mouse') return
     const box = event.currentTarget.getBoundingClientRect()
     const x = ((event.clientX - box.left) / box.width - .5) * 4
     const y = ((event.clientY - box.top) / box.height - .5) * -4
     setTransform(`perspective(800px) rotateX(${y}deg) rotateY(${x}deg) translateY(-5px)`)
   }
-  return <article className={`${className} tactile-card`} style={transform ? { transform } : undefined} onPointerMove={move} onPointerLeave={() => setTransform('')}>{children}</article>
+  return <article className={`${className} tactile-card`} style={motion && transform ? { transform } : undefined} onPointerMove={move} onPointerLeave={() => setTransform('')}>{children}</article>
 }
 
 function CfoHistory({ records, account, onReplay, onEvidence }: { records: CfoHistoryRecord[]; account: AuthSession; onReplay: () => void; onEvidence: () => void }) {
@@ -242,6 +247,13 @@ function BriefSection({ number, title, children }: { number: string; title: stri
 
 function AboutModal({ close }: { close: () => void }) { return <div className="modal-backdrop" onMouseDown={close}><div className="modal" onMouseDown={e => e.stopPropagation()}><button className="modal-close" onClick={close}><X size={18}/></button><div className="about-mark"><Logo /></div><h2>Finance operations you can interrogate.</h2><p>LedgerForge is a deterministic demonstration of goal-driven, tool-using finance automation. It plans work, runs local tools, measures its own output, learns from classified failures, reruns against frozen inputs, and escalates ambiguity rather than inventing certainty.</p><div className="about-grid"><div><ShieldCheck/><strong>Local by design</strong><span>No credentials or external services</span></div><div><Search/><strong>Evidence first</strong><span>Every conclusion links to a trace</span></div><div><Bot/><strong>Goal driven</strong><span>Thresholds define when work is done</span></div><div><Sparkles/><strong>Actually adaptive</strong><span>Before/after evaluation is measured</span></div></div><div className="modal-note"><b>Demo data:</b> Orbit Systems is fictional. All transactions and conclusions are synthetic and repeatable.</div><button className="run-btn full" onClick={close}>Enter console</button></div></div> }
 
+function ReviewSettingsModal({ settings, onClose, onSave }: { settings: ReviewSettings; onClose: () => void; onSave: (settings: ReviewSettings) => void }) {
+  const [draft, setDraft] = useState(settings)
+  return <div className="modal-backdrop" onMouseDown={onClose}><div className="settings-modal" onMouseDown={e => e.stopPropagation()}><button className="modal-close" onClick={onClose}><X size={18}/></button><span className="section-kicker"><Settings2 size={13}/> REVIEW SETTINGS</span><h2>How should LedgerForge review this close?</h2><p className="settings-intro">These choices stay in this browser and are applied the next time you run the review.</p><label>Settlement window<select value={draft.settlementWindowDays} onChange={e => setDraft({ ...draft, settlementWindowDays: Number(e.target.value) })}><option value={0}>Same day only</option><option value={1}>Within 1 day</option><option value={2}>Within 2 days (recommended)</option><option value={3}>Within 3 days</option></select><small>Allow for normal bank settlement timing when matching entries.</small></label><label>Payment risk sensitivity<select value={draft.fraudSensitivity} onChange={e => setDraft({ ...draft, fraudSensitivity: e.target.value as ReviewSettings['fraudSensitivity'] })}><option value="low">Low — fewer alerts</option><option value="standard">Standard — balanced</option><option value="high">High — wider review queue</option></select><small>Higher sensitivity catches more unusual payments, with more items to review.</small></label><label>Materiality threshold<input type="number" min="1000" step="1000" value={draft.materialityThreshold} onChange={e => setDraft({ ...draft, materialityThreshold: Number(e.target.value) || 1000 })}/><small>Highlight exposures above this dollar amount.</small></label><div className="settings-actions"><button className="secondary-small" onClick={() => setDraft(DEFAULT_REVIEW_SETTINGS)}>Reset to defaults</button><button className="primary-small" onClick={() => { onSave(draft); onClose() }}>Save settings</button></div></div></div>
+}
+
+function OnboardingModal({ close }: { close: () => void }) { return <div className="modal-backdrop" onMouseDown={close}><div className="onboarding-modal" onMouseDown={e => e.stopPropagation()}><div className="onboarding-badge"><BookOpen size={17}/> QUICK START</div><h2>Your first close review, step by step.</h2><p className="onboarding-lead">You can see the CFO story in under two minutes. Here is the only path you need.</p><ol><li><b>Run the review.</b><span>Click <strong>Run CFO Time Machine</strong> to replay the close against frozen demo data.</span></li><li><b>Read the three outcomes.</b><span>Cash, payment risk, and the runway decision are summarized in plain language.</span></li><li><b>Make the call.</b><span>Choose a downside or base case when the revenue timing is material.</span></li><li><b>Open evidence when ready.</b><span>Use Review activity, CFO Time Machine, or Board packet for the supporting record.</span></li></ol><button className="run-btn full" onClick={close}>Take me to the close</button><small className="onboarding-foot">You can reopen this guide from About LedgerForge.</small></div></div> }
+
 function GoogleSignIn({ onAuthenticated }: { onAuthenticated: (session: AuthSession) => void }) {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined
   const [state, setState] = useState<'disabled' | 'loading' | 'ready' | 'error'>(clientId ? 'loading' : 'disabled')
@@ -262,8 +274,32 @@ function GoogleSignIn({ onAuthenticated }: { onAuthenticated: (session: AuthSess
     if (existing) { existing.addEventListener('load', initialize, { once: true }); if ((window as Window & { google?: any }).google) initialize(); return }
     const script = document.createElement('script'); script.src = 'https://accounts.google.com/gsi/client'; script.async = true; script.dataset.googleIdentity = 'true'; script.onload = initialize; script.onerror = () => { setState('error'); setMessage('Google sign-in could not be loaded.'); }; document.head.appendChild(script)
   }, [clientId, onAuthenticated])
-  if (!clientId) return <div className="google-auth unavailable"><button type="button" disabled>Continue with Google</button><span>Google sign-in is not configured for this demo.</span></div>
+  if (!clientId) return <div className="google-auth unavailable" role="status"><span className="google-status">Google sign-in is unavailable in this static demo.</span><span>Set VITE_GOOGLE_CLIENT_ID to enable it. Use the local demo account below.</span></div>
   return <div className="google-auth"><button type="button" disabled={state !== 'ready'} onClick={() => (window as Window & { google?: any }).google?.accounts.id.prompt()}>{state === 'loading' ? 'Loading Google sign-in…' : 'Continue with Google'}</button>{message && <span role="alert">{message}</span>}</div>
+}
+
+const authSteps = [
+  { title: 'Choose a CFO goal', detail: 'Pick close cash, payment risk, or runway. LedgerForge starts with a decision—not autopilot.', tag: '01 · CHOOSE' },
+  { title: 'Specialists assemble', detail: 'A planner, matcher, risk reviewer, and skeptic line up around that one outcome.', tag: '02 · ASSEMBLE' },
+  { title: 'Synthetic signals are inspected', detail: 'The team reads eight frozen bank lines, eight ledger entries, eight payments, and a monthly cash plan.', tag: '03 · INSPECT' },
+  { title: 'Evaluate, then challenge', detail: 'Reconciliation and risk gates are measured. The skeptic catches duplicates, timing gaps, and false confidence.', tag: '04 · EVALUATE' },
+  { title: 'Escalate where certainty ends', detail: 'Material ambiguity becomes a CFO question. You keep the final say on the downside or base case.', tag: '05 · ESCALATE' },
+  { title: 'Improve, recheck, brief', detail: 'Only evidence-backed policy changes are rerun on the same fixtures, then packaged as a CFO briefing.', tag: '06 · BRIEF' },
+]
+
+function AuthScene({ active }: { active: number }) {
+  return <div className={`auth-scene scene-active-${active}`} aria-hidden="true"><div className="scene-grid"/><div className="scene-ring ring-one"/><div className="scene-ring ring-two"/><div className="scene-connector connector-one"/><div className="scene-connector connector-two"/><div className="scene-ledger ledger-one"><span>Bank</span><b>8 lines</b></div><div className="scene-ledger ledger-two"><span>Ledger</span><b>8 entries</b></div><div className="scene-ledger ledger-three"><span>Payments</span><b>3 alerts</b></div><div className="scene-agent agent-one"><Bot size={13}/></div><div className="scene-agent agent-two"><Search size={13}/></div><div className="scene-agent agent-three"><ShieldCheck size={13}/></div><div className="scene-issue">{active >= 5 ? <><Check size={13}/>CFO review</> : active >= 4 ? <><AlertTriangle size={13}/>Risk found</> : <><CircleDot size={13}/>Signals</>}</div><div className="scene-score"><span>CONFIDENCE</span><strong>{active >= 6 ? '94' : active >= 5 ? '82' : active >= 4 ? '61' : '—'}</strong><small>/100</small></div><div className="scene-story-label">{authSteps[Math.min(authSteps.length - 1, Math.max(0, active - 1))].tag}</div></div>
+}
+
+function AuthStory() {
+  const [active, setActive] = useState(1)
+  const refs = useRef<Array<HTMLElement | null>>([])
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => entries.forEach(entry => { if (entry.isIntersecting) setActive(Number(entry.target.getAttribute('data-step')) + 1) }), { rootMargin: '-35% 0px -45% 0px', threshold: 0 })
+    refs.current.forEach(element => element && observer.observe(element))
+    return () => observer.disconnect()
+  }, [])
+  return <section className="auth-story-column" aria-label="How LedgerForge works"><header className="auth-story-hero"><span>LEDGERFORGE · AUDITABLE CLOSE REVIEW</span><h1>See how a CFO review gets from raw finance signals to a decision.</h1><p>LedgerForge runs a repeatable close review, shows its work, improves only when evidence supports it, and asks for your judgment where certainty ends.</p><p className="auth-safety">Orbit Systems and every transaction are fictional synthetic fixtures. No credentials, payments, or external network calls.</p><a className="auth-skip-link" href="#sign-in">Skip intro and sign in <ArrowRight size={15}/></a></header><div className="auth-visual-sticky"><AuthScene active={active}/><p className="auth-visual-caption"><span>ONE REVIEW · SIX MOVES</span><b>From question to CFO briefing</b></p></div><div className="auth-steps">{authSteps.map((step, index) => <article className={active === index + 1 ? 'auth-story-step active' : 'auth-story-step'} data-step={index} ref={element => { refs.current[index] = element }} key={step.title}><span>{step.tag}</span><h2>{step.title}</h2><p>{step.detail}</p>{index === authSteps.length - 1 && <a className="auth-stage-cta" href="#sign-in">Sign in or use the demo account <ArrowRight size={15}/></a>}</article>)}</div><div className="auth-action-note"><b>Run → inspect the trace → record the decision.</b><span>After sign-in: Run CFO Time Machine, review activity, then resolve the CFO decision.</span></div></section>
 }
 
 function DemoAuth({ onAuthenticated }: { onAuthenticated: (session: AuthSession) => void }) {
@@ -276,7 +312,7 @@ function DemoAuth({ onAuthenticated }: { onAuthenticated: (session: AuthSession)
     const session = demoSession(); saveSession(localStorage, session); onAuthenticated(session)
   }
   const useDemo = () => { setEmail(DEMO_EMAIL); setPassword(DEMO_PASSWORD); setError(''); const session = demoSession(); saveSession(localStorage, session); onAuthenticated(session) }
-  return <main className="auth-page"><div className="auth-wordmark"><Logo /><span>PRIVATE DEMO</span></div><section className="auth-layout"><div className="auth-intro"><span className="page-label"><ShieldCheck size={13} />ORBIT SYSTEMS FINANCE</span><h1>The operating system for a confident close.</h1><p>LedgerForge turns finance signals into auditable decisions—without sacrificing judgment, controls, or clarity.</p><div className="auth-proof"><div><strong>3</strong><span>active CFO workflows</span></div><div><strong>100%</strong><span>reconciliation recall</span></div><div><strong>0</strong><span>external connections</span></div></div></div><form className="auth-card" onSubmit={signIn}><div className="auth-card-top"><div className="auth-shield"><ShieldCheck size={20} /></div><div><span>ORBIT SYSTEMS</span><h2>Sign in to LedgerForge</h2></div></div><p>Use the local demo workspace to explore the September close.</p><GoogleSignIn onAuthenticated={onAuthenticated}/><div className="auth-divider"><span>or use the local demo</span></div><label>Email<input aria-label="Email" type="email" value={email} onChange={event => setEmail(event.target.value)} autoComplete="email" /></label><label>Password<input aria-label="Password" type="password" value={password} onChange={event => setPassword(event.target.value)} autoComplete="current-password" /></label>{error && <p className="auth-error" role="alert">{error}</p>}<button className="auth-primary" type="submit">Sign in <ArrowRight size={16} /></button><button className="auth-demo" type="button" onClick={useDemo}>Use demo account</button><div className="auth-note"><ShieldCheck size={14} /><span><b>Demo authentication only</b> · no real credentials are sent or stored.</span></div></form></section><footer className="auth-footer"><span>© 2026 LedgerForge</span><span>Local deterministic environment · Orbit Systems is fictional</span></footer></main>
+  return <main className="auth-page"><div className="auth-wordmark"><Logo /><span>PRIVATE DEMO · <a href="#sign-in">SKIP TO SIGN IN</a></span></div><div className="auth-landing"><AuthStory/><section className="auth-login-column" id="sign-in"><form className="auth-card" onSubmit={signIn}><div className="auth-card-top"><div className="auth-shield"><ShieldCheck size={20} /></div><div><span>ORBIT SYSTEMS</span><h2>Sign in to LedgerForge</h2></div></div><p>Bring a little more confidence to the close. The demo is ready to run locally in your browser.</p><GoogleSignIn onAuthenticated={onAuthenticated}/><div className="auth-divider"><span>or use the local demo</span></div><label>Email<input aria-label="Email" type="email" value={email} onChange={event => setEmail(event.target.value)} autoComplete="email" /></label><label>Password<input aria-label="Password" type="password" value={password} onChange={event => setPassword(event.target.value)} autoComplete="current-password" /></label>{error && <p className="auth-error" role="alert">{error}</p>}<button className="auth-primary" type="submit">Sign in <ArrowRight size={16} /></button><button className="auth-demo" type="button" onClick={useDemo}>Use demo account</button><div className="auth-note"><ShieldCheck size={14} /><span><b>Demo authentication only</b> · no real credentials are sent or stored.</span></div></form><div className="auth-trust"><span><CheckCircle2 size={14}/> Synthetic data only</span><span><CheckCircle2 size={14}/> No external connections</span><span><CheckCircle2 size={14}/> Evidence on every answer</span></div></section></div><footer className="auth-footer"><span>© 2026 LedgerForge</span><span>Orbit Systems is fictional · local deterministic environment</span></footer></main>
 }
 
 function App() {
@@ -290,31 +326,40 @@ function App() {
   const [agentGenerated, setAgentGenerated] = useState(false)
   const [agentImproved, setAgentImproved] = useState(false)
   const [injectedCase, setInjectedCase] = useState(false)
-  const [controlMessage, setControlMessage] = useState('Ready · 3 goal contracts available for local execution')
+  const [controlMessage, setControlMessage] = useState('Ready · choose a cash, payment risk, or runway review')
   const [extraTrace, setExtraTrace] = useState<TraceEvent[]>([])
   const [history, setHistory] = useState<CfoHistoryRecord[]>(() => account ? getHistory(localStorage, account) : [])
+  const [reviewSettings, setReviewSettings] = useState<ReviewSettings>(() => loadReviewSettings(localStorage))
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [dataMessage, setDataMessage] = useState('Synthetic demo data ready')
+  const [onboarding, setOnboarding] = useState(() => localStorage.getItem('ledgerforge-onboarding-seen') !== '1')
+  useEffect(() => { if (!mobile) return; const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setMobile(false) }; window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey) }, [mobile])
   const setDecision = (v: string) => { setDecisionRaw(v || null); if (v) localStorage.setItem('ledgerforge-decision', v); else localStorage.removeItem('ledgerforge-decision') }
   const addHistory = (record: CfoHistoryRecord) => { if (account) setHistory(appendHistory(localStorage, account, record)) }
-  const run = () => { setRunning(true); setCompleted(false); setView('overview'); window.setTimeout(() => { setRunning(false); setCompleted(true); addHistory({ id: `LF-${Date.now()}`, date: 'Just now', title: 'CFO Time Machine replay', score: 94, status: 'reviewed', evidence: 'Board packet updated', activity: 'Close rechecked' }); setView('time-machine') }, 1450) }
+  const run = () => { setRunning(true); setCompleted(false); setView('overview'); const matches = matchTransactions(bankEntries, ledgerEntries, 'improved', reviewSettings.settlementWindowDays).filter(row => row.ledgerId).length; const flagged = detectFraud(payments, 'improved', reviewSettings.fraudSensitivity).filter(row => row.flagged).length; setControlMessage(`Review complete · ${matches}/8 cash links · ${flagged} payment alerts · settings applied`); window.setTimeout(() => { setRunning(false); setCompleted(true); addHistory({ id: `LF-${Date.now()}`, date: 'Just now', title: 'CFO Time Machine replay', score: Math.min(99, 88 + matches + flagged), status: 'reviewed', evidence: 'Board packet updated', activity: 'Close rechecked' }); setView('time-machine') }, 1450) }
   const addControlTrace = (event: TraceEvent) => setExtraTrace(prev => [...prev, event])
-  const generateAgent = () => { setAgentGenerated(true); setControlMessage('Agent generated · 3 CFO workflows compiled into a goal contract'); addControlTrace({ id: 'T12', time: '09:42:31', phase: 'plan', title: 'Agent generated from goal contract', detail: 'Compiled close, controls, and runway workflows from deterministic local policies.', tool: 'agent.generate_local', status: 'success', durationMs: 12 }) }
+  const generateAgent = () => { setAgentGenerated(true); setControlMessage('Review team ready · three CFO paths assembled'); addControlTrace({ id: 'T12', time: '09:42:31', phase: 'plan', title: 'Review team assembled', detail: 'Compiled close, controls, and runway workflows from deterministic local policies.', tool: 'agent.generate_local', status: 'success', durationMs: 12 }) }
   const improveAgent = () => { setAgentImproved(true); setControlMessage('Agent improved · policy v2 verified against the frozen fixture'); addControlTrace({ id: 'T13', time: '09:42:44', phase: 'improve', title: 'Agent improvement applied', detail: 'Promoted alias, settlement-window, and duplicate-cluster signals after evaluator evidence.', tool: 'agent.improve_local', status: 'success', durationMs: 19 }) }
   const injectFraud = () => { setInjectedCase(true); setControlMessage('Fraud case escalated · P-2299 Helio Freight · $14,750'); addControlTrace({ id: 'T14', time: '09:42:57', phase: 'escalate', title: 'Synthetic fraud case injected', detail: 'P-2299 Helio Freight · $14,750 · duplicate bank account and new vendor signals.', tool: 'fixture.inject_fraud', status: 'warning', durationMs: 4 }); addHistory({ id: `LF-injected-${Date.now()}`, date: 'Just now', title: 'Injected payment review', score: 94, status: 'attention', evidence: 'Review activity saved', activity: 'New risk escalated' }) }
-  const reset = () => { setDecision(''); setView('overview'); setCompleted(true); setAbout(false); setAgentGenerated(false); setAgentImproved(false); setInjectedCase(false); setControlMessage('Ready · 3 goal contracts available for local execution'); setExtraTrace([]) }
+  const loadData = () => { clearDemoData(localStorage); setDecision(''); setHistory(account ? getHistory(localStorage, account) : []); setInjectedCase(false); setAgentGenerated(false); setAgentImproved(false); setExtraTrace([]); setDataMessage('Synthetic demo data reloaded · stale run state cleared'); setControlMessage('Ready · choose a cash, payment risk, or runway review') }
+  const saveSettingsAndApply = (next: ReviewSettings) => { saveReviewSettings(localStorage, next); setReviewSettings(next); setControlMessage(`Settings saved · ${next.settlementWindowDays}d matching window · ${next.fraudSensitivity} payment sensitivity`) }
+  const reset = () => { setDecision(''); setView('overview'); setCompleted(true); setAbout(false); setAgentGenerated(false); setAgentImproved(false); setInjectedCase(false); setControlMessage('Ready · choose a cash, payment risk, or runway review'); setExtraTrace([]) }
   const title = useMemo(() => ({ overview: 'Command center', timeline: 'Execution trace', 'time-machine': 'Time Machine', evidence: 'Evidence packet' })[view], [view])
   const signOut = () => { localStorage.removeItem(SESSION_KEY); setAccount(null); setHistory([]); setMobile(false); setAbout(false) }
   const authenticate = (session: AuthSession) => { setAccount(session); setHistory(getHistory(localStorage, session)) }
   if (!account) return <DemoAuth onAuthenticated={authenticate} />
   return <div className={`app-shell ${mobile ? 'mobile-open' : ''}`}>
     <div className="mobile-overlay" onClick={() => setMobile(false)} />
-    <Sidebar view={view} setView={(v) => { setView(v); setMobile(false); document.title = `${title} — LedgerForge` }} openAbout={() => setAbout(true)} signOut={signOut} account={account} />
-    <main className="content"><Header running={running} run={run} reset={reset} mobileNav={() => setMobile(true)} />
+    <Sidebar view={view} setView={(v) => { setView(v); setMobile(false); document.title = `${title} — LedgerForge` }} openAbout={() => setAbout(true)} signOut={signOut} account={account} openSettings={() => setSettingsOpen(true)} loadData={loadData} dataMessage={dataMessage} />
+    <main className="content"><Header running={running} run={run} reset={reset} mobileNav={() => setMobile(v => !v)} mobileOpen={mobile} />
       {view === 'overview' && <Overview setView={setView} decision={decision} setDecision={setDecision} completed={completed} running={running} run={run} agentGenerated={agentGenerated} agentImproved={agentImproved} injectedCase={injectedCase} controlMessage={controlMessage} onGenerate={generateAgent} onImprove={improveAgent} onInject={injectFraud} history={history} account={account} />}
       {view === 'timeline' && <TimelineView extraTrace={extraTrace} />}
       {view === 'time-machine' && <TimeMachineView />}
       {view === 'evidence' && <EvidenceView decision={decision} />}
     </main>
     {about && <AboutModal close={() => setAbout(false)} />}
+    {settingsOpen && <ReviewSettingsModal settings={reviewSettings} onClose={() => setSettingsOpen(false)} onSave={saveSettingsAndApply} />}
+    {onboarding && <OnboardingModal close={() => { localStorage.setItem('ledgerforge-onboarding-seen', '1'); setOnboarding(false) }} />}
   </div>
 }
 

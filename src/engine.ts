@@ -12,8 +12,9 @@ export function normalizeCounterparty(value: string): string {
   return normalized
 }
 
-export function matchTransactions(banks: BankEntry[], ledger: LedgerEntry[], mode: RunMode): MatchResult[] {
+export function matchTransactions(banks: BankEntry[], ledger: LedgerEntry[], mode: RunMode, settlementWindowDays?: number): MatchResult[] {
   const claimed = new Set<string>()
+  const window = settlementWindowDays ?? (mode === 'improved' ? 2 : 0)
   return banks.map((bank) => {
     const candidates = ledger.filter((entry) => !claimed.has(entry.id) && Math.abs(entry.amount - bank.amount) < 0.01)
     const match = candidates
@@ -22,7 +23,7 @@ export function matchTransactions(banks: BankEntry[], ledger: LedgerEntry[], mod
         const sameParty = mode === 'improved'
           ? normalizeCounterparty(bank.description) === normalizeCounterparty(entry.counterparty)
           : clean(bank.description) === clean(entry.counterparty)
-        const eligible = mode === 'improved' ? days <= 2 && sameParty : days === 0 && sameParty
+        const eligible = days <= window && sameParty
         return { entry, eligible, days }
       })
       .filter((item) => item.eligible)
@@ -38,7 +39,7 @@ export function matchTransactions(banks: BankEntry[], ledger: LedgerEntry[], mod
   })
 }
 
-export function detectFraud(input: Payment[], mode: RunMode): FraudResult[] {
+export function detectFraud(input: Payment[], mode: RunMode, sensitivity: 'low' | 'standard' | 'high' = 'standard'): FraudResult[] {
   const duplicateKeys = new Map<string, number>()
   input.forEach((p) => duplicateKeys.set(`${p.vendor}:${p.amount}`, (duplicateKeys.get(`${p.vendor}:${p.amount}`) ?? 0) + 1))
   return input.map((payment) => {
@@ -50,7 +51,8 @@ export function detectFraud(input: Payment[], mode: RunMode): FraudResult[] {
     if (mode === 'improved' && (duplicateKeys.get(`${payment.vendor}:${payment.amount}`) ?? 0) > 1) { score += 0.32; reasons.push('duplicate amount/vendor') }
     if (mode === 'improved' && payment.amount % 100 === 0 && payment.amount >= 9_000) { score += 0.08; reasons.push('round amount') }
     score = Math.min(0.99, score)
-    return { paymentId: payment.id, score, flagged: score >= (mode === 'improved' ? 0.62 : 0.8), reasons, expectedFraud: payment.expectedFraud }
+    const threshold = mode === 'improved' ? (sensitivity === 'high' ? 0.5 : sensitivity === 'low' ? 0.76 : 0.62) : 0.8
+    return { paymentId: payment.id, score, flagged: score >= threshold, reasons, expectedFraud: payment.expectedFraud }
   })
 }
 
